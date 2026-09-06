@@ -1657,12 +1657,12 @@
   };
 
   const StateStore = {
-    STORAGE_KEY: "TROY_AI_BLOG_STATE_V5",
+    STORAGE_KEY: "TROY_AI_BLOG_STATE_V6",
     state: {
       sessionId: "session_" + new Date().getTime(),
       _rowId: null, // 試算表對應列號生死線
       audioChunksList: [],
-      transcriptsList: [], // 每分鐘語音逐字稿串列
+      liveTranscriptText: "", // Google 原生 Web Speech 即時辨識全文
       proposalsList: [],
       selectedProposal: null,
       currentPost: {
@@ -1679,7 +1679,7 @@
       sortOption: "newest",
       currentUser: null,
       offlineQueue: [],
-      isAudioFinalized: false // 標記音訊與逐字稿是否已全部存妥
+      isAudioFinalized: false
     },
 
     init: function () {
@@ -1729,7 +1729,7 @@
         sessionId: "session_" + new Date().getTime(),
         _rowId: null,
         audioChunksList: [],
-        transcriptsList: [],
+        liveTranscriptText: "",
         proposalsList: [],
         selectedProposal: null,
         currentPost: {
@@ -2097,7 +2097,132 @@
 
   /**
    * ==========================================================================
-   * 60 秒切片雙軌錄音、Gemini 逐字稿辨識、Drive 自動上傳 (獨立容器無損封裝版)
+   * 核心新戰略：Google 原生即時語音轉文字 (Web Speech API) 模組
+   * ==========================================================================
+   */
+  let speechRecognizer = null;
+  let isSpeechActive = false;
+  let accumulatedFinalTranscript = "";
+
+  function ensureLiveTranscriptEditorUI() {
+    let wrap = document.getElementById("live-transcript-wrap");
+    if (!wrap) {
+      const parent = document.getElementById("panel-step1");
+      const refNode = document.getElementById("proceed-proposals-wrap") || parent.querySelector(".log-terminal-container");
+
+      wrap = document.createElement("div");
+      wrap.id = "live-transcript-wrap";
+      wrap.style.cssText = "margin: 20px 0; background: var(--bg-main); border: 1px solid var(--border-light); border-radius: var(--radius-default); padding: 18px;";
+
+      wrap.innerHTML = 
+        '<div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 8px; flex-wrap: wrap; gap: 8px;">' +
+          '<label class="form-label" style="margin-bottom: 0; font-size: 13px; font-weight: 700; color: var(--text-primary);">' +
+            '<i data-lucide="sparkles" style="width: 14px; height: 14px; margin-right: 4px; vertical-align: middle;"></i>' +
+            'Google 語音即時轉文字 (邊說邊辨識，可直接修改內容)：' +
+          '</label>' +
+          '<button class="btn btn-secondary btn-sm" onclick="saveTranscriptToSheetManual()">' +
+            '<i data-lucide="save" style="width: 13px; height: 13px;"></i> 一鍵儲存逐字稿至試算表' +
+          '</button>' +
+        '</div>' +
+        '<textarea class="textarea-field" id="live-transcript-editor" style="min-height: 140px; font-size: 14px; line-height: 1.8;" placeholder="點擊「開始錄音」後對著麥克風說話，Google 雲端語音辨識技術將即時打字在此處，您可隨時在此修正錯別字..."></textarea>' +
+        '<div class="form-hint" id="live-transcript-hint">目前已辨識：0 字 (錄音結束時將自動同步寫入試算表對應儲存格)</div>';
+
+      if (refNode) {
+        parent.insertBefore(wrap, refNode);
+      } else {
+        parent.appendChild(wrap);
+      }
+      lucide.createIcons();
+    }
+  }
+
+  function initSpeechRecognition() {
+    const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
+    if (!SpeechRecognition) {
+      addExecutionLog("瀏覽器不支援 Web Speech API，請使用 Chrome 體驗 Google 即時語音辨識", "warn");
+      return null;
+    }
+
+    const rec = new SpeechRecognition();
+    rec.lang = "zh-TW"; // 繁體中文
+    rec.continuous = true; // 連續辨識
+    rec.interimResults = true; // 即時輸出過渡文字
+    rec.maxAlternatives = 1;
+
+    rec.onresult = function (event) {
+      let interimStr = "";
+      for (let i = event.resultIndex; i < event.results.length; ++i) {
+        if (event.results[i].isFinal) {
+          accumulatedFinalTranscript += event.results[i][0].transcript;
+        } else {
+          interimStr += event.results[i][0].transcript;
+        }
+      }
+
+      const fullText = accumulatedFinalTranscript + (interimStr ? (" " + interimStr) : "");
+      const editor = document.getElementById("live-transcript-editor");
+      const hint = document.getElementById("live-transcript-hint");
+
+      if (editor) {
+        editor.value = fullText;
+      }
+      if (hint) {
+        hint.textContent = "目前已辨識：" + fullText.length + " 字 (即時 Google 語音串流中)";
+      }
+
+      StateStore.setState("liveTranscriptText", fullText);
+    };
+
+    rec.onerror = function (event) {
+      if (event.error !== "no-speech") {
+        addExecutionLog("即時語音辨識狀態: " + event.error, "info");
+      }
+    };
+
+    rec.onend = function () {
+      if (isSpeechActive) {
+        try { rec.start(); } catch (e) {}
+      }
+    };
+
+    return rec;
+  }
+
+  async function saveTranscriptToSheetManual() {
+    const editor = document.getElementById("live-transcript-editor");
+    const text = (editor ? editor.value : StateStore.getState("liveTranscriptText") || "").trim();
+
+    if (!text) {
+      ToastController.show("目前逐字稿尚無文字內容", "warn");
+      return;
+    }
+
+    const rowId = StateStore.getState("_rowId");
+    addExecutionLog("正在將前端逐字稿全文 (" + text.length + " 字) 儲存至試算表 Col 9...", "info");
+    ToastController.show("正在同步逐字稿至試算表...", "info");
+
+    try {
+      const res = await callBackendApi("updatePost", {
+        _rowId: rowId,
+        id: StateStore.getState("sessionId"),
+        postData: {
+          transcripts: text
+        }
+      });
+
+      if (res.status === "success") {
+        addExecutionLog("逐字稿全文已成功寫入試算表第 " + (res.data._rowId || rowId || "-") + " 列 Col 9 儲存格！", "success");
+        ToastController.show("逐字稿已成功儲存至試算表儲存格！", "success");
+      }
+    } catch (e) {
+      addExecutionLog("逐字稿儲存異常: " + e.message, "error");
+      ToastController.show("儲存異常: " + e.message, "error");
+    }
+  }
+
+  /**
+   * ==========================================================================
+   * 錄音控制、60 秒雲端硬碟切片打包 (純存檔免 AI 轉錄，速度極快)
    * ==========================================================================
    */
   let recordingTimerInterval = null;
@@ -2112,6 +2237,8 @@
 
   async function startRecording() {
     try {
+      ensureLiveTranscriptEditorUI();
+
       const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
       activeAudioStream = stream;
       recordingSeconds = 0;
@@ -2119,9 +2246,22 @@
       isManuallyStopping = false;
       chunkCounter = StateStore.getState("audioChunksList").length;
       activeUploadPromises = [];
+      accumulatedFinalTranscript = "";
 
+      const editor = document.getElementById("live-transcript-editor");
+      if (editor) editor.value = "";
+
+      // 啟動 Google 原生語音轉文字
+      isSpeechActive = true;
+      speechRecognizer = initSpeechRecognition();
+      if (speechRecognizer) {
+        try { speechRecognizer.start(); } catch (e) {}
+        addExecutionLog("Google 原生語音辨識引擎已啟動：對著麥克風說話將即時打字在前端視窗", "success");
+      }
+
+      // 控制按鈕狀態
       document.getElementById("recording-status-badge").style.display = "inline-flex";
-      document.getElementById("recording-status-text").textContent = "錄音進行中";
+      document.getElementById("recording-status-text").textContent = "錄音與語音轉文字進行中";
       document.getElementById("waveform-visualizer").classList.add("active");
 
       document.getElementById("btn-start-record").classList.add("btn-disabled");
@@ -2132,12 +2272,12 @@
 
       startTimer();
 
-      // 第一軌：錄音一按下，立即向試算表建立新紀錄列（若尚未建立）
+      // 第一軌：錄音一按下，立即向試算表建立草稿紀錄列
       const currentSessionId = StateStore.getState("sessionId");
       let currentRowId = StateStore.getState("_rowId");
 
       if (!currentRowId) {
-        addExecutionLog("錄音啟動：正在試算表【文章庫_發布總表】建立全新草稿列...", "info");
+        addExecutionLog("正在試算表【文章庫_發布總表】鎖定草稿列...", "info");
         try {
           const initRes = await callBackendApi("createDraftSession", {
             sessionId: currentSessionId
@@ -2145,29 +2285,24 @@
           if (initRes.status === "success" && initRes.data && initRes.data._rowId) {
             StateStore.setState("_rowId", initRes.data._rowId);
             updateSheetRowBadge();
-            addExecutionLog("試算表草稿紀錄已鎖定：第 " + initRes.data._rowId + " 列 (文章識別碼: " + currentSessionId + ")", "success");
+            addExecutionLog("試算表草稿紀錄已鎖定：第 " + initRes.data._rowId + " 列", "success");
           }
         } catch (initErr) {
-          addExecutionLog("試算表草稿列預先建立提示: " + initErr.message + " (將於第 1 分鐘切片補償建立)", "warn");
+          addExecutionLog("試算表草稿建列提示: " + initErr.message, "warn");
         }
-      } else {
-        addExecutionLog("繼續沿用目前試算表草稿列：第 " + currentRowId + " 列", "info");
       }
 
-      // 啟動首段獨立錄音實例
+      // 第二軌：音訊每 60 秒打包直傳 Google Drive
       startNewChunkRecordingInstance();
 
-      addExecutionLog("雙軌錄音待命完成：每 60 秒將自動封裝獨立 WebM 音檔直存 Drive 並由 Gemini 辨識逐字稿", "info");
-      ToastController.show("開始錄音，請對麥克風自然敘述業務觀點", "info");
+      addExecutionLog("音檔打包佇列已就緒：錄音中每 60 秒自動打包上傳至指定 Drive 資料夾", "info");
+      ToastController.show("開始錄音，語音正即時轉為文字中...", "info");
     } catch (err) {
-      addExecutionLog("麥克風初始化失敗: " + err.message, "error");
-      ToastController.show("無法存取麥克風設備: " + err.message, "error");
+      addExecutionLog("錄音設備初始化失敗: " + err.message, "error");
+      ToastController.show("無法存取麥克風: " + err.message, "error");
     }
   }
 
-  /**
-   * 關鍵升級：建立自帶完整 EBML 標頭之獨立切片錄音實例，徹底根治 AI 400 無法解碼
-   */
   function startNewChunkRecordingInstance() {
     if (!activeAudioStream || isManuallyStopping) return;
 
@@ -2187,24 +2322,22 @@
       const completeBlob = new Blob(localChunks, { type: "audio/webm" });
       const sizeKb = (completeBlob.size / 1024).toFixed(1);
 
-      addExecutionLog("第 " + thisChunkIdx + " 段獨立切片音檔已產出 (" + sizeKb + " KB)，啟動雙軌雲端儲存與逐字稿辨識...", "info");
+      addExecutionLog("第 " + thisChunkIdx + " 分鐘音檔已打包 (" + sizeKb + " KB)，正在直傳存入 Google Drive...", "info");
 
       const uploadTask = new Promise(function (resolve) {
         const reader = new FileReader();
         reader.onloadend = async function () {
-          const rawResult = reader.result;
-          let base64Pure = "";
-          if (typeof rawResult === "string") {
-            base64Pure = rawResult.indexOf(",") !== -1 ? rawResult.split(",") : rawResult;
-          }
-          base64Pure = base64Pure.trim().replace(/\s/g, "");
+          const rawResult = String(reader.result || "");
+          // 關鍵修復：嚴格萃取純 Base64 字串，消除 TypeError: base64Pure.trim is not a function
+          let base64Pure = rawResult.indexOf(",") !== -1 ? rawResult.split(",") : rawResult;
+          base64Pure = String(base64Pure || "").trim().replace(/[\r\n\s]/g, "");
 
           try {
             const res = await callBackendApi("saveAudioChunk", {
               sessionId: StateStore.getState("sessionId"),
               chunkIndex: thisChunkIdx,
               base64Data: base64Pure,
-              mimeType: "audio/webm", // 嚴格傳遞標準 MIME 類型，不帶參數
+              mimeType: "audio/webm",
               _rowId: StateStore.getState("_rowId")
             });
 
@@ -2214,29 +2347,15 @@
                 updateSheetRowBadge();
               }
 
-              const actualTranscript = res.data.transcript || "（音訊轉錄中）";
               const currentChunks = StateStore.getState("audioChunksList").concat([res.data.chunk]);
-              const currentTranscripts = StateStore.getState("transcriptsList").concat([{
-                chunk_index: thisChunkIdx,
-                transcript: actualTranscript,
-                stream_url: res.data.chunk.stream_url
-              }]);
-
               StateStore.setState("audioChunksList", currentChunks);
-              StateStore.setState("transcriptsList", currentTranscripts);
               renderAudioChunksAndTranscripts();
 
-              addExecutionLog("第 " + thisChunkIdx + " 分鐘切片已存入 Drive (" + (res.data.chunk.name || "chunk.webm") + ")", "success");
-              addExecutionLog("第 " + thisChunkIdx + " 分鐘逐字稿已辨識並寫入試算表 Col 9: 「" + actualTranscript.substring(0, 35) + "...」", "success");
-              ToastController.show("第 " + thisChunkIdx + " 段逐字稿已成功辨識並寫入儲存格！", "success");
-            } else {
-              const errMsg = (res && res.message) ? res.message : "未知錯誤";
-              addExecutionLog("第 " + thisChunkIdx + " 段後端處理警示: " + errMsg, "error");
-              ToastController.show("切片處理失敗: " + errMsg, "error");
+              addExecutionLog("第 " + thisChunkIdx + " 分鐘音檔已成功存入 Drive 資料夾 (" + (res.data.chunk.name || "chunk.webm") + ")", "success");
+              ToastController.show("第 " + thisChunkIdx + " 段音檔已存入雲端硬碟！", "success");
             }
           } catch (uploadErr) {
-            addExecutionLog("第 " + thisChunkIdx + " 段傳輸異常: " + uploadErr.message, "error");
-            ToastController.show("切片上傳異常: " + uploadErr.message, "error");
+            addExecutionLog("第 " + thisChunkIdx + " 分鐘音檔上傳異常: " + uploadErr.message, "error");
           } finally {
             resolve();
           }
@@ -2250,7 +2369,7 @@
     recorder.start();
     activeMediaRecorder = recorder;
 
-    // 每 60 秒主動輪替重新封裝下一段獨立音檔
+    // 每 60 秒輪替打包存檔
     chunkRotationTimer = setTimeout(function () {
       if (activeMediaRecorder && activeMediaRecorder.state === "recording" && !isManuallyStopping && !isRecordingPaused) {
         activeMediaRecorder.stop();
@@ -2267,22 +2386,27 @@
       isRecordingPaused = true;
       clearInterval(recordingTimerInterval);
       clearTimeout(chunkRotationTimer);
+      if (speechRecognizer) {
+        try { speechRecognizer.stop(); } catch (e) {}
+      }
       document.getElementById("recording-status-text").textContent = "錄音已暫停";
       document.getElementById("waveform-visualizer").classList.remove("active");
       updatePauseButtonUi(true);
-      addExecutionLog("使用者暫停錄音", "info");
+      addExecutionLog("使用者暫停錄音與語音辨識", "info");
       ToastController.show("錄音已暫停", "info");
     } else {
       activeMediaRecorder.resume();
       isRecordingPaused = false;
       startTimer();
+      if (speechRecognizer) {
+        try { speechRecognizer.start(); } catch (e) {}
+      }
       document.getElementById("recording-status-text").textContent = "錄音進行中";
       document.getElementById("waveform-visualizer").classList.add("active");
       updatePauseButtonUi(false);
       addExecutionLog("使用者繼續錄音", "info");
       ToastController.show("錄音已繼續", "info");
 
-      // 重新計算切片剩餘秒數排程
       const remainingSec = 60 - (recordingSeconds % 60);
       chunkRotationTimer = setTimeout(function () {
         if (activeMediaRecorder && activeMediaRecorder.state === "recording" && !isManuallyStopping && !isRecordingPaused) {
@@ -2307,14 +2431,18 @@
   }
 
   /**
-   * 按下停止後：以真正的 Promise.all 等待最後一段音檔上傳與 Gemini 逐字稿完成，絕不自主亂產提案！
+   * 停止錄音：停止音訊與 Google 語音轉文字，並自動同步最終逐字稿至試算表儲存格
    */
   async function stopRecordingAndFinalize() {
-    addExecutionLog("使用者按下停止錄音：正在封裝最後切片並等待雙軌傳輸完成...", "info");
+    addExecutionLog("使用者按下停止錄音：正在封裝最後切片並等待雲端存檔...", "info");
     isManuallyStopping = true;
+    isSpeechActive = false;
     clearTimeout(chunkRotationTimer);
     clearInterval(recordingTimerInterval);
 
+    if (speechRecognizer) {
+      try { speechRecognizer.stop(); } catch (e) {}
+    }
     if (activeMediaRecorder && activeMediaRecorder.state !== "inactive") {
       activeMediaRecorder.stop();
     }
@@ -2331,27 +2459,24 @@
     document.getElementById("btn-stop-record").classList.add("btn-disabled");
     updatePauseButtonUi(false);
 
-    // 等待 800ms 確保最後一段 onstop 已觸發並加入 activeUploadPromises
     await new Promise(function (resolve) { setTimeout(resolve, 800); });
-
-    addExecutionLog("正在等待進行中的雙軌音訊傳輸與 Gemini 逐字稿辨識完成 (共 " + activeUploadPromises.length + " 段任務)...", "info");
-    ToastController.show("正在完成最終切片儲存與逐字稿轉錄...", "info");
-
-    // 真正非同步等待所有切片完成 Google Drive 儲存與試算表寫入
     await Promise.all(activeUploadPromises);
+
+    // 自動將最終逐字稿文字寫入試算表 Col 9
+    await saveTranscriptToSheetManual();
 
     const chunkCount = StateStore.getState("audioChunksList").length;
     StateStore.setState("isAudioFinalized", true);
 
-    addExecutionLog("雙軌同步完成！共 " + chunkCount + " 段切片音檔已存入 Drive，逐字稿已全部寫入試算表儲存格！", "success");
-    addExecutionLog("系統已解除鎖定，請點選下方按鈕開始產生 20 組策略提案。", "info");
+    addExecutionLog("雙軌存檔完成！共 " + chunkCount + " 段音檔存入 Drive，逐字稿已全部寫入試算表儲存格！", "success");
+    addExecutionLog("系統已就緒，請點選「一鍵產出 20 組策略提案」開始讓 Gemini 閱讀分析。", "info");
 
     const proceedBtn = document.getElementById("btn-proceed-proposals");
     if (proceedBtn) {
       proceedBtn.classList.remove("btn-disabled");
     }
 
-    ToastController.show("所有切片與逐字稿已全數存入雲端與試算表！", "success");
+    ToastController.show("錄音音檔與逐字稿已全數就緒！", "success");
   }
 
   function proceedToProposalsView() {
@@ -2381,20 +2506,16 @@
     container.innerHTML = "";
 
     const chunks = StateStore.getState("audioChunksList") || [];
-    const transcripts = StateStore.getState("transcriptsList") || [];
-
     if (badge) badge.textContent = chunks.length + " 段切片";
 
     if (chunks.length === 0) {
-      container.innerHTML = '<span style="color: var(--text-muted); font-size: 13px;">暫無切片與逐字稿</span>';
+      container.innerHTML = '<span style="color: var(--text-muted); font-size: 13px;">暫無切片檔案</span>';
       return;
     }
 
     chunks.forEach(function (chunk, idx) {
       const item = document.createElement("div");
       item.className = "chunk-card";
-      const tObj = transcripts[idx] || {};
-      const transcriptText = tObj.transcript || "辨識完成，音檔已存入 Google Drive";
       const directUrl = chunk.stream_url || ("https://drive.google.com/uc?export=download&id=" + chunk.file_id);
 
       item.innerHTML = 
@@ -2404,8 +2525,8 @@
             '<i data-lucide="external-link" style="width: 11px; height: 11px;"></i> 雲端直連試聽' +
           '</a>' +
         '</div>' +
-        '<div class="chunk-transcript-box">' +
-          '<strong>每分鐘語音逐字稿：</strong>' + transcriptText +
+        '<div style="font-size: 12px; color: var(--text-muted);">' +
+          '檔案大小：' + (chunk.size ? (chunk.size / 1024).toFixed(1) + ' KB' : '已就緒') + ' ｜ Google Drive 雲端已同步' +
         '</div>';
 
       container.appendChild(item);
@@ -2415,24 +2536,27 @@
 
   /**
    * ==========================================================================
-   * 階段一提案選題、試算表紀錄與階段二極致呼吸感全文產出
+   * 階段一：直接將大串逐字稿文字送給 Gemini 深度語意分析產出 20 組提案
    * ==========================================================================
    */
   async function requestProposalsFromAudio() {
-    const transcripts = StateStore.getState("transcriptsList") || [];
-    if (transcripts.length === 0) {
-      ToastController.show("尚未有任何逐字稿內容，請先完成錄音", "warn");
+    // 優先讀取前端即時可編輯之逐字稿內容
+    const editor = document.getElementById("live-transcript-editor");
+    const rawTranscript = (editor ? editor.value : StateStore.getState("liveTranscriptText") || "").trim();
+
+    if (!rawTranscript) {
+      ToastController.show("尚未有任何逐字稿內容，請先錄音或手動輸入觀點", "warn");
       return;
     }
 
-    addExecutionLog("向後端請求依據逐字稿調用 Gemini API 輪調產出 20 組爆款提案...", "info");
-    ToastController.show("Gemini 正在依據逐字稿產出 20 組爆款策略提案...", "info");
+    addExecutionLog("正在將整串逐字稿文字 (" + rawTranscript.length + " 字) 送交 Gemini 進行陳修平 7x11 爆款矩陣分析...", "info");
+    ToastController.show("Gemini 正在分析逐字稿觀點並產出 20 組策略提案...", "info");
 
     const container = document.getElementById("proposals-container");
     container.innerHTML = 
       '<div style="text-align: center; padding: 40px; color: var(--text-muted);">' +
         '<i data-lucide="loader" style="width: 24px; height: 24px; animation: spin 1.5s linear infinite; margin-bottom: 8px;"></i>' +
-        '<p>正在由 Gemini 輪調金鑰萃取 20 組策略提案並同步登記至試算表格，請稍候...</p>' +
+        '<p>Gemini 正在萃取逐字稿精華論點並產出 20 組策略提案，請稍候...</p>' +
       '</div>';
     lucide.createIcons();
 
@@ -2440,8 +2564,7 @@
       const res = await callBackendApi("generateProposals", {
         sessionId: StateStore.getState("sessionId"),
         _rowId: StateStore.getState("_rowId"),
-        audioChunks: StateStore.getState("audioChunksList"),
-        transcripts: StateStore.getState("transcriptsList")
+        transcripts: rawTranscript // 直接傳送純文字逐字稿
       });
 
       if (res.status === "success" && res.data) {
@@ -2455,7 +2578,7 @@
         renderProposalsList(proposals);
 
         addExecutionLog("20 組策略提案生成完畢並已寫入試算表 Col 10 (AI提案選項)", "success");
-        ToastController.show("已產出 20 組提案並記錄至試算表！", "success");
+        ToastController.show("已成功產出 20 組爆款提案！", "success");
       } else {
         container.innerHTML = '<div style="text-align: center; padding: 40px; color: #D9383A;">產生提案失敗：' + (res.message || "未知錯誤") + '</div>';
         addExecutionLog("產生提案失敗: " + res.message, "error");
@@ -2537,15 +2660,17 @@
       return;
     }
 
+    const editor = document.getElementById("live-transcript-editor");
+    const rawTranscript = (editor ? editor.value : StateStore.getState("liveTranscriptText") || "").trim();
+
     addExecutionLog("啟動階段二：依據選定提案《" + selected.title + "》撰寫 800-1500 字極致呼吸感全文...", "info");
-    ToastController.show("Gemini 正在撰寫全文 (支援金鑰輪調) 並同步試算表...", "info");
+    ToastController.show("Gemini 正在撰寫全文並同步試算表...", "info");
 
     try {
       const res = await callBackendApi("generateFullArticle", {
         _rowId: StateStore.getState("_rowId"),
         selectedProposal: selected,
-        audioChunks: StateStore.getState("audioChunksList"),
-        transcripts: StateStore.getState("transcriptsList")
+        transcripts: rawTranscript
       });
 
       if (res.status === "success" && res.data) {
@@ -2737,7 +2862,7 @@
               hook: post.hook || "",
               content_html: contentHtml,
               audio_files: StateStore.getState("audioChunksList"),
-              transcripts: StateStore.getState("transcriptsList"),
+              transcripts: StateStore.getState("liveTranscriptText") || "",
               diagnostic_score: post.diagnostic_score || 95
             }
           });
@@ -2769,6 +2894,9 @@
       content: "確定要清空所有錄音切片、逐字稿與編輯中草稿嗎？此操作無法復原。",
       onConfirm: function () {
         StateStore.clear();
+        accumulatedFinalTranscript = "";
+        const editor = document.getElementById("live-transcript-editor");
+        if (editor) editor.value = "";
         document.getElementById("post-title-input").value = "";
         document.getElementById("post-hook-input").value = "";
         document.getElementById("post-content-html-input").value = "";
@@ -2825,17 +2953,6 @@
     if (post.audio_files && Array.isArray(post.audio_files)) {
       StateStore.setState("audioChunksList", post.audio_files);
     }
-    if (post.transcripts) {
-      if (Array.isArray(post.transcripts)) {
-        StateStore.setState("transcriptsList", post.transcripts);
-      } else if (typeof post.transcripts === "string") {
-        StateStore.setState("transcriptsList", [{
-          chunk_index: 1,
-          transcript: post.transcripts,
-          stream_url: post.audio_stream_url || ""
-        }]);
-      }
-    }
 
     const titleInput = document.getElementById("post-title-input");
     const hookInput = document.getElementById("post-hook-input");
@@ -2852,7 +2969,7 @@
     updateWordCountDisplay(postObj.content_html);
     renderAudioChunksAndTranscripts();
 
-    addExecutionLog("已成功叫回已發布文章《" + postObj.title + "》(ID: " + postObj.id + "，試算表列: " + (post._rowId || "-") + ") 至編輯器", "success");
+    addExecutionLog("已成功叫回已發布文章《" + postObj.title + "》(ID: " + postObj.id + ") 至編輯器", "success");
     ToastController.show("文章已載入編輯器，可修改內文、同步試算表或重新發布！", "success");
 
     ViewSwitcher.navigate("editor");
@@ -3727,12 +3844,17 @@
     StateStore.init();
     SeamlessAudioPlayer.init();
     ViewSwitcher.init();
+    ensureLiveTranscriptEditorUI();
     lucide.createIcons();
 
     EventHub.on("state:restored", function (savedState) {
       renderAudioChunksAndTranscripts();
       if (savedState.proposalsList && savedState.proposalsList.length > 0) {
         renderProposalsList(savedState.proposalsList);
+      }
+      if (savedState.liveTranscriptText) {
+        const editor = document.getElementById("live-transcript-editor");
+        if (editor) editor.value = savedState.liveTranscriptText;
       }
       if (savedState.currentPost) {
         document.getElementById("post-title-input").value = savedState.currentPost.title || "";
