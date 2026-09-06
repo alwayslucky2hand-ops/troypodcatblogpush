@@ -146,7 +146,7 @@
         </div>
       </div>
 
-      <!-- 正式文章內文閱讀區 (含黃山料極致呼吸感排版與 100 分診斷表) -->
+      <!-- 正式文章內文閱讀區 (含極致呼吸感排版與 100 分診斷表) -->
       <article class="article-body-view" id="article-view-content">
         <div class="skeleton skeleton-title"></div>
         <div class="skeleton skeleton-text" style="width: 40%;"></div>
@@ -245,6 +245,21 @@
             <i data-lucide="arrow-right"></i> 錄音逐字稿已就緒，一鍵產出 20 組策略提案
           </button>
         </div>
+      </div>
+
+      <!-- 核心修復點：實體靜態原生配置 Google 語音即時轉文字編輯視窗 (不再以 JS 動態 insertBefore，杜絕 DOM 崩潰) -->
+      <div class="transcript-editor-wrap" id="live-transcript-wrap">
+        <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 8px; flex-wrap: wrap; gap: 8px;">
+          <label class="form-label" style="margin-bottom: 0; font-size: 13px; font-weight: 700; color: var(--text-primary);">
+            <i data-lucide="sparkles" style="width: 14px; height: 14px; margin-right: 4px; vertical-align: middle;"></i>
+            Google 語音即時轉文字 (邊說邊辨識，可直接修改內容)：
+          </label>
+          <button class="btn btn-secondary btn-sm" onclick="saveTranscriptToSheetManual()">
+            <i data-lucide="save" style="width: 13px; height: 13px;"></i> 一鍵儲存逐字稿至試算表
+          </button>
+        </div>
+        <textarea class="textarea-field" id="live-transcript-editor" style="min-height: 140px; font-size: 14px; line-height: 1.8;" placeholder="點擊「開始錄音」後對著麥克風說話，Google 雲端語音辨識技術將即時打字在此處，您可隨時在此修正錯別字..."></textarea>
+        <div class="form-hint" id="live-transcript-hint">目前已辨識：0 字 (錄音結束時將自動同步寫入試算表對應儲存格)</div>
       </div>
 
       <!-- 即時執行日誌控制台 (Execution Log Terminal) -->
@@ -763,6 +778,20 @@
     justify-content: center;
   }
 
+  /* 逐字稿即時編輯區塊樣式 */
+  .transcript-editor-wrap {
+    margin: 20px 0;
+    background: var(--bg-main);
+    border: 1px solid var(--border-light);
+    border-radius: var(--radius-default);
+    padding: 18px;
+    transition: border-color 0.2s ease;
+  }
+
+  .transcript-editor-wrap:focus-within {
+    border-color: var(--border-focus);
+  }
+
   /* 即時執行日誌控制台樣式 (Terminal Style) */
   .log-terminal-container {
     background-color: #18181B;
@@ -833,15 +862,6 @@
     align-items: center;
     font-size: 13px;
     font-weight: 600;
-  }
-
-  .chunk-transcript-box {
-    background-color: var(--bg-card);
-    border-radius: 4px;
-    padding: 8px 12px;
-    font-size: 13px;
-    color: var(--text-secondary);
-    line-height: 1.6;
   }
 
   .chunk-link-tag {
@@ -1633,7 +1653,6 @@
   }
 </style>
 
-
 <script>
   /**
    * ==========================================================================
@@ -1923,7 +1942,7 @@
 
       updateSheetRowBadge();
       window.scrollTo({ top: 0, behavior: "smooth" });
-      lucide.createIcons();
+      if (window.lucide) lucide.createIcons();
     }
   };
 
@@ -1982,7 +2001,7 @@
       this.bodyElem.innerHTML = options.content || "";
       this.onConfirmCallback = options.onConfirm || null;
       this.backdrop.classList.add("open");
-      lucide.createIcons();
+      if (window.lucide) lucide.createIcons();
     },
 
     close: function () {
@@ -2097,7 +2116,7 @@
 
   /**
    * ==========================================================================
-   * 核心新戰略：Google 原生即時語音轉文字 (Web Speech API) 模組
+   * 核心修復：安全取得 Google 原生即時語音轉文字編輯節點 (100% 杜絕 DOM 崩潰)
    * ==========================================================================
    */
   let speechRecognizer = null;
@@ -2105,41 +2124,44 @@
   let accumulatedFinalTranscript = "";
 
   function ensureLiveTranscriptEditorUI() {
+    // 優先使用 Index.html 靜態已配置好的 DOM 節點
     let wrap = document.getElementById("live-transcript-wrap");
-    if (!wrap) {
-      const parent = document.getElementById("panel-step1");
-      const refNode = document.getElementById("proceed-proposals-wrap") || parent.querySelector(".log-terminal-container");
+    if (wrap) return;
 
-      wrap = document.createElement("div");
-      wrap.id = "live-transcript-wrap";
-      wrap.style.cssText = "margin: 20px 0; background: var(--bg-main); border: 1px solid var(--border-light); border-radius: var(--radius-default); padding: 18px;";
+    // 若處於無靜態節點的極端環境，執行安全掛載
+    const parent = document.getElementById("panel-step1");
+    if (!parent) return;
 
-      wrap.innerHTML = 
-        '<div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 8px; flex-wrap: wrap; gap: 8px;">' +
-          '<label class="form-label" style="margin-bottom: 0; font-size: 13px; font-weight: 700; color: var(--text-primary);">' +
-            '<i data-lucide="sparkles" style="width: 14px; height: 14px; margin-right: 4px; vertical-align: middle;"></i>' +
-            'Google 語音即時轉文字 (邊說邊辨識，可直接修改內容)：' +
-          '</label>' +
-          '<button class="btn btn-secondary btn-sm" onclick="saveTranscriptToSheetManual()">' +
-            '<i data-lucide="save" style="width: 13px; height: 13px;"></i> 一鍵儲存逐字稿至試算表' +
-          '</button>' +
-        '</div>' +
-        '<textarea class="textarea-field" id="live-transcript-editor" style="min-height: 140px; font-size: 14px; line-height: 1.8;" placeholder="點擊「開始錄音」後對著麥克風說話，Google 雲端語音辨識技術將即時打字在此處，您可隨時在此修正錯別字..."></textarea>' +
-        '<div class="form-hint" id="live-transcript-hint">目前已辨識：0 字 (錄音結束時將自動同步寫入試算表對應儲存格)</div>';
+    wrap = document.createElement("div");
+    wrap.id = "live-transcript-wrap";
+    wrap.className = "transcript-editor-wrap";
 
-      if (refNode) {
-        parent.insertBefore(wrap, refNode);
-      } else {
-        parent.appendChild(wrap);
-      }
-      lucide.createIcons();
+    wrap.innerHTML = 
+      '<div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 8px; flex-wrap: wrap; gap: 8px;">' +
+        '<label class="form-label" style="margin-bottom: 0; font-size: 13px; font-weight: 700; color: var(--text-primary);">' +
+          '<i data-lucide="sparkles" style="width: 14px; height: 14px; margin-right: 4px; vertical-align: middle;"></i>' +
+          'Google 語音即時轉文字 (邊說邊辨識，可直接修改內容)：' +
+        '</label>' +
+        '<button class="btn btn-secondary btn-sm" onclick="saveTranscriptToSheetManual()">' +
+          '<i data-lucide="save" style="width: 13px; height: 13px;"></i> 一鍵儲存逐字稿至試算表' +
+        '</button>' +
+      '</div>' +
+      '<textarea class="textarea-field" id="live-transcript-editor" style="min-height: 140px; font-size: 14px; line-height: 1.8;" placeholder="點擊「開始錄音」後對著麥克風說話，Google 雲端語音辨識技術將即時打字在此處，您可隨時在此修正錯別字..."></textarea>' +
+      '<div class="form-hint" id="live-transcript-hint">目前已辨識：0 字 (錄音結束時將自動同步寫入試算表對應儲存格)</div>';
+
+    const logContainer = parent.querySelector(".log-terminal-container");
+    if (logContainer && logContainer.parentNode === parent) {
+      parent.insertBefore(wrap, logContainer);
+    } else {
+      parent.appendChild(wrap);
     }
+    if (window.lucide) lucide.createIcons();
   }
 
   function initSpeechRecognition() {
     const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
     if (!SpeechRecognition) {
-      addExecutionLog("瀏覽器不支援 Web Speech API，請使用 Chrome 體驗 Google 即時語音辨識", "warn");
+      addExecutionLog("瀏覽器未支援 Web Speech API，建議使用 Chrome 體驗 Google 即時語音辨識", "warn");
       return null;
     }
 
@@ -2175,7 +2197,7 @@
 
     rec.onerror = function (event) {
       if (event.error !== "no-speech") {
-        addExecutionLog("即時語音辨識狀態: " + event.error, "info");
+        addExecutionLog("即時語音辨識提示: " + event.error, "info");
       }
     };
 
@@ -2222,7 +2244,7 @@
 
   /**
    * ==========================================================================
-   * 錄音控制、60 秒雲端硬碟切片打包 (純存檔免 AI 轉錄，速度極快)
+   * 錄音控制、60 秒雲端硬碟切片打包 (精準隔離麥克風權限與錯誤判定)
    * ==========================================================================
    */
   let recordingTimerInterval = null;
@@ -2236,10 +2258,18 @@
   let activeUploadPromises = [];
 
   async function startRecording() {
-    try {
-      ensureLiveTranscriptEditorUI();
+    ensureLiveTranscriptEditorUI();
 
-      const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
+    let stream = null;
+    try {
+      stream = await navigator.mediaDevices.getUserMedia({ audio: true });
+    } catch (micErr) {
+      addExecutionLog("麥克風存取受阻: " + micErr.message + " (請確認瀏覽器網址列之麥克風存取權限已開啟)", "error");
+      ToastController.show("無法存取麥克風，請檢查瀏覽器設定: " + micErr.message, "error");
+      return;
+    }
+
+    try {
       activeAudioStream = stream;
       recordingSeconds = 0;
       isRecordingPaused = false;
@@ -2298,8 +2328,8 @@
       addExecutionLog("音檔打包佇列已就緒：錄音中每 60 秒自動打包上傳至指定 Drive 資料夾", "info");
       ToastController.show("開始錄音，語音正即時轉為文字中...", "info");
     } catch (err) {
-      addExecutionLog("錄音設備初始化失敗: " + err.message, "error");
-      ToastController.show("無法存取麥克風: " + err.message, "error");
+      addExecutionLog("錄音初始化流程異常: " + err.message, "error");
+      ToastController.show("錄音啟動異常: " + err.message, "error");
     }
   }
 
@@ -2328,7 +2358,7 @@
         const reader = new FileReader();
         reader.onloadend = async function () {
           const rawResult = String(reader.result || "");
-          // 關鍵修復：嚴格萃取純 Base64 字串，消除 TypeError: base64Pure.trim is not a function
+          // 嚴格萃取純 Base64 字串，消除 TypeError
           let base64Pure = rawResult.indexOf(",") !== -1 ? rawResult.split(",") : rawResult;
           base64Pure = String(base64Pure || "").trim().replace(/[\r\n\s]/g, "");
 
@@ -2427,7 +2457,7 @@
       icon.setAttribute("data-lucide", "pause");
       text.textContent = "暫停錄音";
     }
-    lucide.createIcons();
+    if (window.lucide) lucide.createIcons();
   }
 
   /**
@@ -2531,7 +2561,7 @@
 
       container.appendChild(item);
     });
-    lucide.createIcons();
+    if (window.lucide) lucide.createIcons();
   }
 
   /**
@@ -2540,7 +2570,6 @@
    * ==========================================================================
    */
   async function requestProposalsFromAudio() {
-    // 優先讀取前端即時可編輯之逐字稿內容
     const editor = document.getElementById("live-transcript-editor");
     const rawTranscript = (editor ? editor.value : StateStore.getState("liveTranscriptText") || "").trim();
 
@@ -2558,13 +2587,13 @@
         '<i data-lucide="loader" style="width: 24px; height: 24px; animation: spin 1.5s linear infinite; margin-bottom: 8px;"></i>' +
         '<p>Gemini 正在萃取逐字稿精華論點並產出 20 組策略提案，請稍候...</p>' +
       '</div>';
-    lucide.createIcons();
+    if (window.lucide) lucide.createIcons();
 
     try {
       const res = await callBackendApi("generateProposals", {
         sessionId: StateStore.getState("sessionId"),
         _rowId: StateStore.getState("_rowId"),
-        transcripts: rawTranscript // 直接傳送純文字逐字稿
+        transcripts: rawTranscript
       });
 
       if (res.status === "success" && res.data) {
@@ -2619,7 +2648,7 @@
     });
 
     document.getElementById("btn-generate-article").classList.add("btn-disabled");
-    lucide.createIcons();
+    if (window.lucide) lucide.createIcons();
   }
 
   async function selectProposal(index) {
@@ -3224,7 +3253,7 @@
       const icon = document.getElementById("player-toggle-icon");
       if (icon) {
         icon.setAttribute("data-lucide", playing ? "pause" : "play");
-        lucide.createIcons();
+        if (window.lucide) lucide.createIcons();
       }
     },
 
@@ -3523,7 +3552,7 @@
 
       loadGeminiRelatedArticles(post);
 
-      lucide.createIcons();
+      if (window.lucide) lucide.createIcons();
     } catch (err) {
       contentElem.innerHTML = '<div class="empty-state"><p class="empty-state-title">文章讀取失敗：' + err.message + '</p></div>';
     }
@@ -3567,7 +3596,7 @@
 
     container.style.display = "block";
     grid.innerHTML = '<div style="font-size: 12px; color: var(--text-muted);"><i data-lucide="loader" style="width: 14px; height: 14px; animation: spin 1.5s linear infinite; vertical-align: middle;"></i> Gemini 正在演算最適延伸閱讀...</div>';
-    lucide.createIcons();
+    if (window.lucide) lucide.createIcons();
 
     try {
       const res = await callBackendApi("getRecommendedPosts", {
@@ -3586,7 +3615,7 @@
             '<div class="related-card-reason"><i data-lucide="sparkles" style="width: 12px; height: 12px; margin-right: 4px;"></i>' + (rec.reason || "推薦閱讀精華") + '</div>';
           grid.appendChild(card);
         });
-        lucide.createIcons();
+        if (window.lucide) lucide.createIcons();
       } else {
         fallbackRenderRelatedPosts(candidates, grid);
       }
@@ -3607,7 +3636,7 @@
         '<div class="related-card-reason">' + (rec.hook ? rec.hook.substring(0, 45) + "..." : "精彩延伸觀點") + '</div>';
       grid.appendChild(card);
     });
-    lucide.createIcons();
+    if (window.lucide) lucide.createIcons();
   }
 
   async function loadPostAnalytics(postId) {
@@ -3815,7 +3844,7 @@
       container.appendChild(grid);
     }
 
-    lucide.createIcons();
+    if (window.lucide) lucide.createIcons();
   }
 
   function renderEmptyPostsState(msg) {
@@ -3826,10 +3855,10 @@
         '<p class="empty-state-title">' + msg + '</p>' +
         '<p style="font-size: 13px; color: var(--text-muted); margin-bottom: 16px;">您可以嘗試不同的搜尋關鍵字，或切換至錄音面板發布新文章。</p>' +
         '<button class="btn btn-secondary btn-sm" onclick="resetPostFilters()">' +
-          '<i data-lucide="refresh-cw" style="width: 14px; height: 14px;"></i> 清除篩選條件' +
+          '<i data-lucide="rotate-ccw" style="width: 14px; height: 14px;"></i> 清除篩選條件' +
         '</button>' +
       '</div>';
-    lucide.createIcons();
+    if (window.lucide) lucide.createIcons();
   }
 
   /**
@@ -3845,7 +3874,7 @@
     SeamlessAudioPlayer.init();
     ViewSwitcher.init();
     ensureLiveTranscriptEditorUI();
-    lucide.createIcons();
+    if (window.lucide) lucide.createIcons();
 
     EventHub.on("state:restored", function (savedState) {
       renderAudioChunksAndTranscripts();
