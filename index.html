@@ -2096,7 +2096,7 @@
 
   /**
    * ==========================================================================
-   * 60 秒切片雙軌錄音、Gemini 逐字稿辨識、Drive 自動上傳與即時建檔
+   * 60 秒切片雙軌錄音、Gemini 逐字稿辨識、Drive 自動上傳與即時建檔 (修復強化版)
    * ==========================================================================
    */
   let recordingTimerInterval = null;
@@ -2104,7 +2104,7 @@
   let activeMediaRecorder = null;
   let activeAudioStream = null;
   let isRecordingPaused = false;
-  let isFinalizingRecording = false;
+  let activeUploadPromises = []; // 真正以 Promise 陣列追蹤所有進行中的雙軌任務
 
   async function startRecording() {
     try {
@@ -2112,9 +2112,9 @@
       activeAudioStream = stream;
       recordingSeconds = 0;
       isRecordingPaused = false;
-      isFinalizingRecording = false;
+      activeUploadPromises = []; // 重置傳輸佇列
 
-      // 禁用與啟用相應控制按鈕
+      // 控制按鈕狀態
       document.getElementById("recording-status-badge").style.display = "inline-flex";
       document.getElementById("recording-status-text").textContent = "錄音進行中";
       document.getElementById("waveform-visualizer").classList.add("active");
@@ -2153,66 +2153,77 @@
       const recorder = new MediaRecorder(stream);
       let chunkCount = StateStore.getState("audioChunksList").length;
 
-      recorder.ondataavailable = async function (e) {
+      recorder.ondataavailable = function (e) {
         if (e.data && e.data.size > 0) {
           chunkCount++;
           const chunkIndex = chunkCount;
-          addExecutionLog("第 " + chunkIndex + " 段切片音檔已產出 (" + (e.data.size / 1024).toFixed(1) + " KB)，啟動雙軌雲端儲存與 Gemini 逐字稿辨識...", "info");
+          const sizeKb = (e.data.size / 1024).toFixed(1);
+          addExecutionLog("第 " + chunkIndex + " 段切片音檔已產出 (" + sizeKb + " KB)，啟動雙軌雲端儲存與 Gemini 逐字稿辨識...", "info");
 
-          const reader = new FileReader();
-          reader.onloadend = async function () {
-            const base64Data = reader.result.split(",");
-            try {
-              const res = await callBackendApi("saveAudioChunk", {
-                sessionId: StateStore.getState("sessionId"),
-                chunkIndex: chunkIndex,
-                base64Data: base64Data,
-                mimeType: e.data.type || "audio/mp3",
-                _rowId: StateStore.getState("_rowId")
-              });
-
-              if (res.status === "success" && res.data) {
-                // 1. 綁定更新後端回傳之試算表 rowId
-                if (res.data._rowId) {
-                  StateStore.setState("_rowId", res.data._rowId);
-                  updateSheetRowBadge();
-                }
-
-                // 2. 存入音檔切片與逐字稿陣列
-                const currentChunks = StateStore.getState("audioChunksList").concat([res.data.chunk]);
-                const currentTranscripts = StateStore.getState("transcriptsList").concat([{
-                  chunk_index: chunkIndex,
-                  transcript: res.data.transcript || "（音檔已存入雲端，文字萃取完成）",
-                  stream_url: res.data.chunk.stream_url
-                }]);
-
-                StateStore.setState("audioChunksList", currentChunks);
-                StateStore.setState("transcriptsList", currentTranscripts);
-                renderAudioChunksAndTranscripts();
-
-                addExecutionLog("第 " + chunkIndex + " 分鐘切片已存入 Drive (File ID: " + res.data.chunk.file_id + ")，逐字稿已寫入試算表第 " + (res.data._rowId || "-") + " 列 Col 9", "success");
-                ToastController.show("第 " + chunkIndex + " 段切片與逐字稿已寫入試算表！", "success");
-
-                // 若此時處於「停止後的最後收尾階段」，解鎖產出提案按鈕
-                if (isFinalizingRecording) {
-                  finalizeRecordingCompletion();
-                }
+          // 封裝為 Promise 推進 activeUploadPromises 追蹤隊列
+          const uploadPromise = new Promise(function (resolve) {
+            const reader = new FileReader();
+            reader.onloadend = async function () {
+              const rawResult = reader.result;
+              // 關鍵修復：嚴格萃取純 Base64 字串，移除 Data URI 前綴，絕不傳遞 Array！
+              let base64Pure = "";
+              if (typeof rawResult === "string") {
+                base64Pure = rawResult.indexOf(",") !== -1 ? rawResult.split(",") : rawResult;
               }
-            } catch (uploadErr) {
-              addExecutionLog("第 " + chunkIndex + " 段切片上傳異常: " + uploadErr.message, "error");
-              ToastController.show("切片上傳異常: " + uploadErr.message, "error");
-              if (isFinalizingRecording) {
-                finalizeRecordingCompletion();
+
+              try {
+                const res = await callBackendApi("saveAudioChunk", {
+                  sessionId: StateStore.getState("sessionId"),
+                  chunkIndex: chunkIndex,
+                  base64Data: base64Pure,
+                  mimeType: e.data.type || "audio/webm",
+                  _rowId: StateStore.getState("_rowId")
+                });
+
+                if (res && res.status === "success" && res.data) {
+                  // 1. 綁定更新後端回傳之試算表 rowId
+                  if (res.data._rowId) {
+                    StateStore.setState("_rowId", res.data._rowId);
+                    updateSheetRowBadge();
+                  }
+
+                  // 2. 存入音檔切片與逐字稿陣列
+                  const currentChunks = StateStore.getState("audioChunksList").concat([res.data.chunk]);
+                  const currentTranscripts = StateStore.getState("transcriptsList").concat([{
+                    chunk_index: chunkIndex,
+                    transcript: res.data.transcript || "（音檔已存入雲端，文字萃取完成）",
+                    stream_url: res.data.chunk.stream_url
+                  }]);
+
+                  StateStore.setState("audioChunksList", currentChunks);
+                  StateStore.setState("transcriptsList", currentTranscripts);
+                  renderAudioChunksAndTranscripts();
+
+                  addExecutionLog("第 " + chunkIndex + " 分鐘切片已存入 Drive (" + (res.data.chunk.name || "chunk.webm") + ")", "success");
+                  addExecutionLog("第 " + chunkIndex + " 分鐘逐字稿已寫入試算表第 " + (res.data._rowId || "-") + " 列 Col 9", "success");
+                  ToastController.show("第 " + chunkIndex + " 段切片與逐字稿已同步完成！", "success");
+                } else {
+                  const errMsg = (res && res.message) ? res.message : "未知錯誤";
+                  addExecutionLog("第 " + chunkIndex + " 段切片後端處理警告: " + errMsg, "error");
+                  ToastController.show("切片處理失敗: " + errMsg, "error");
+                }
+              } catch (uploadErr) {
+                addExecutionLog("第 " + chunkIndex + " 段切片傳輸異常: " + uploadErr.message, "error");
+                ToastController.show("切片上傳異常: " + uploadErr.message, "error");
+              } finally {
+                resolve();
               }
-            }
-          };
-          reader.readAsDataURL(e.data);
+            };
+            reader.readAsDataURL(e.data);
+          });
+
+          activeUploadPromises.push(uploadPromise);
         }
       };
 
       recorder.start(60000);
       activeMediaRecorder = recorder;
-      addExecutionLog("錄音中樞待命完成，每 60 秒將自動切片上傳至指定 Drive 資料夾", "info");
+      addExecutionLog("錄音中樞待命完成，每 60 秒將自動切片上傳至指定 Drive 資料夾並寫入試算表", "info");
       ToastController.show("開始錄音，請對麥克風自然敘述業務觀點", "info");
     } catch (err) {
       addExecutionLog("麥克風初始化失敗: " + err.message, "error");
@@ -2258,11 +2269,10 @@
   }
 
   /**
-   * 按下停止後：僅專注完成最後切片與逐字稿存檔，寫入試算表對應儲存格，絕不自主亂產提案！
+   * 按下停止後：以真正的 Promise.all 等待最後一段音檔上傳與 Gemini 逐字稿完成，絕不自主亂產提案！
    */
-  function stopRecordingAndFinalize() {
+  async function stopRecordingAndFinalize() {
     addExecutionLog("使用者按下停止錄音：正在封裝最後切片並等待雙軌傳輸完成...", "info");
-    isFinalizingRecording = true;
 
     if (activeMediaRecorder && activeMediaRecorder.state !== "inactive") {
       activeMediaRecorder.stop();
@@ -2281,28 +2291,27 @@
     document.getElementById("btn-stop-record").classList.add("btn-disabled");
     updatePauseButtonUi(false);
 
-    // 設定 1.5 秒延遲檢查，若無額外切片待產出則直接完成
-    setTimeout(function () {
-      if (isFinalizingRecording) {
-        finalizeRecordingCompletion();
-      }
-    }, 1500);
-  }
+    // 等待 600ms 確保最後一段 ondataavailable 已觸發並加入 activeUploadPromises
+    await new Promise(function (resolve) { setTimeout(resolve, 600); });
 
-  function finalizeRecordingCompletion() {
-    isFinalizingRecording = false;
-    StateStore.setState("isAudioFinalized", true);
+    addExecutionLog("正在等待進行中的雙軌音訊傳輸與 Gemini 逐字稿辨識完成 (共 " + activeUploadPromises.length + " 段任務)...", "info");
+    ToastController.show("正在完成最終切片儲存與逐字稿轉錄...", "info");
+
+    // 真正非同步等待所有切片完成 Google Drive 儲存與試算表寫入
+    await Promise.all(activeUploadPromises);
 
     const chunkCount = StateStore.getState("audioChunksList").length;
-    addExecutionLog("錄音音檔與逐字稿已全數處理完畢！共 " + chunkCount + " 段切片寫入試算表。", "success");
-    addExecutionLog("系統已解除鎖定，請點選「一鍵產出 20 組策略提案」開始選題。", "info");
+    StateStore.setState("isAudioFinalized", true);
+
+    addExecutionLog("雙軌同步完成！共 " + chunkCount + " 段切片音檔已存入 Drive，逐字稿已全部寫入試算表儲存格！", "success");
+    addExecutionLog("系統已解除鎖定，請點選下方按鈕開始產生 20 組策略提案。", "info");
 
     const proceedBtn = document.getElementById("btn-proceed-proposals");
     if (proceedBtn) {
       proceedBtn.classList.remove("btn-disabled");
     }
 
-    ToastController.show("錄音切片與逐字稿已全數存入雲端與試算表！", "success");
+    ToastController.show("所有切片與逐字稿已全數存入雲端與試算表！", "success");
   }
 
   function proceedToProposalsView() {
@@ -2350,7 +2359,7 @@
 
       item.innerHTML = 
         '<div class="chunk-card-header">' +
-          '<span><i data-lucide="music-2" style="width: 14px; height: 14px; vertical-align: middle; margin-right: 4px;"></i> 第 ' + (idx + 1) + ' 分鐘切片音檔 (' + (chunk.name || "chunk.mp3") + ')</span>' +
+          '<span><i data-lucide="music-2" style="width: 14px; height: 14px; vertical-align: middle; margin-right: 4px;"></i> 第 ' + (idx + 1) + ' 分鐘切片音檔 (' + (chunk.name || "chunk.webm") + ')</span>' +
           '<a href="' + directUrl + '" target="_blank" class="chunk-link-tag">' +
             '<i data-lucide="external-link" style="width: 11px; height: 11px;"></i> 雲端直連試聽' +
           '</a>' +
@@ -2624,7 +2633,6 @@
       return;
     }
 
-    // 建立暫時前台預覽物件
     const previewPost = {
       id: post.id || "preview_temp",
       title: post.title,
@@ -2741,6 +2749,148 @@
         addExecutionLog("草稿與本機快取已重設", "info");
         ToastController.show("草稿已成功清除", "success");
         ViewSwitcher.navigate("record");
+      }
+    });
+  }
+
+  /**
+   * ==========================================================================
+   * 後台操作機制：叫回已發布文章重新編輯 (Edit Post) 與永久刪除 (Delete Post)
+   * ==========================================================================
+   */
+  function editExistingPost(postId) {
+    const allPosts = StateStore.getState("allPosts") || [];
+    let post = null;
+
+    for (let i = 0; i < allPosts.length; i++) {
+      if (String(allPosts[i].id) === String(postId)) {
+        post = allPosts[i];
+        break;
+      }
+    }
+
+    if (!post) {
+      const active = StateStore.getState("activeReadingPost");
+      if (active && String(active.id) === String(postId)) {
+        post = active;
+      }
+    }
+
+    if (!post) {
+      ToastController.show("找不到指定文章資料", "error");
+      return;
+    }
+
+    const postObj = {
+      id: post.id,
+      title: post.title || "",
+      hook: post.hook || "",
+      content_html: post.content_html || "",
+      diagnostic_score: Number(post.diagnostic_score) || 95
+    };
+
+    StateStore.setState("currentPost", postObj);
+
+    if (post._rowId) {
+      StateStore.setState("_rowId", post._rowId);
+      updateSheetRowBadge();
+    }
+
+    if (post.audio_files && Array.isArray(post.audio_files)) {
+      StateStore.setState("audioChunksList", post.audio_files);
+    }
+    if (post.transcripts) {
+      if (Array.isArray(post.transcripts)) {
+        StateStore.setState("transcriptsList", post.transcripts);
+      } else if (typeof post.transcripts === "string") {
+        StateStore.setState("transcriptsList", [{
+          chunk_index: 1,
+          transcript: post.transcripts,
+          stream_url: post.audio_stream_url || ""
+        }]);
+      }
+    }
+
+    const titleInput = document.getElementById("post-title-input");
+    const hookInput = document.getElementById("post-hook-input");
+    const htmlInput = document.getElementById("post-content-html-input");
+    const scoreInput = document.getElementById("post-diagnostic-score-input");
+    const previewBox = document.getElementById("post-preview-container");
+
+    if (titleInput) titleInput.value = postObj.title;
+    if (hookInput) hookInput.value = postObj.hook;
+    if (htmlInput) htmlInput.value = postObj.content_html;
+    if (scoreInput) scoreInput.value = postObj.diagnostic_score;
+    if (previewBox) previewBox.innerHTML = postObj.content_html || "<p>尚未生成文章內文。</p>";
+
+    updateWordCountDisplay(postObj.content_html);
+    renderAudioChunksAndTranscripts();
+
+    addExecutionLog("已成功叫回已發布文章《" + postObj.title + "》(ID: " + postObj.id + "，試算表列: " + (post._rowId || "-") + ") 至編輯器", "success");
+    ToastController.show("文章已載入編輯器，可修改內文、同步試算表或重新發布！", "success");
+
+    ViewSwitcher.navigate("editor");
+  }
+
+  function deleteExistingPost(postId) {
+    const allPosts = StateStore.getState("allPosts") || [];
+    let post = null;
+
+    for (let i = 0; i < allPosts.length; i++) {
+      if (String(allPosts[i].id) === String(postId)) {
+        post = allPosts[i];
+        break;
+      }
+    }
+
+    if (!post) {
+      const active = StateStore.getState("activeReadingPost");
+      if (active && String(active.id) === String(postId)) {
+        post = active;
+      }
+    }
+
+    const title = (post && post.title) ? post.title : postId;
+    const targetRow = (post && post._rowId) ? post._rowId : null;
+
+    ModalController.open({
+      title: "確認刪除文章",
+      content: "確定要將文章《" + title + "》完全刪除嗎？<br><br><span style='color:#D9383A;font-size:12px;'>此操作將同步自 Google 試算表及 GitHub 倉庫 (獨立網頁與 posts.json 索引) 永久移除，無法復原。</span>",
+      onConfirm: async function () {
+        addExecutionLog("正在向後端發送請求，自試算表與 GitHub 刪除文章《" + title + "》...", "warn");
+        ToastController.show("正在刪除文章並同步雲端與倉庫...", "info");
+
+        try {
+          const res = await callBackendApi("deletePost", {
+            id: postId,
+            _rowId: targetRow
+          });
+
+          if (res.status === "success") {
+            const updatedPosts = allPosts.filter(function (p) { return String(p.id) !== String(postId); });
+            StateStore.setState("allPosts", updatedPosts);
+
+            const cur = StateStore.getState("currentPost");
+            if (cur && String(cur.id) === String(postId)) {
+              StateStore.clear();
+            }
+
+            applyFiltersAndRender();
+
+            addExecutionLog("文章《" + title + "》已成功自試算表與 GitHub 倉庫徹底移除！", "success");
+            ToastController.show("文章已成功刪除！", "success");
+
+            if (ViewSwitcher.currentRoute === "article") {
+              ViewSwitcher.navigate("blog");
+            }
+          } else {
+            addExecutionLog("刪除失敗: " + (res.message || "未知錯誤"), "error");
+            ToastController.show("刪除失敗: " + (res.message || "未知錯誤"), "error");
+          }
+        } catch (err) {
+          addExecutionLog("刪除連線異常: " + err.message, "error");
+          ToastController.show("刪除異常: " + err.message, "error");
+        }
       }
     });
   }
@@ -3147,7 +3297,7 @@
 
   /**
    * ==========================================================================
-   * 獨立文章加載、Gemini 智能延伸閱讀推薦渲染
+   * 獨立文章加載、Gemini 智能延伸閱讀推薦渲染 (含叫回編輯與刪除操作)
    * ==========================================================================
    */
   async function loadSingleArticle(postId) {
@@ -3195,8 +3345,16 @@
             '<span>作者：特洛伊 ｜ 創業者的時間貧窮解放師</span><br>' +
             '<span>刊登時間：' + dateStr + '</span>' +
           '</div>' +
-          '<div class="badge" style="background-color: var(--text-primary); color: var(--bg-main); font-weight: 600;">' +
-            '100分評測：' + score + ' 分' +
+          '<div style="display: flex; gap: 8px; align-items: center; flex-wrap: wrap;">' +
+            '<button onclick="editExistingPost(\'' + post.id + '\')" class="btn btn-secondary btn-sm">' +
+              '<i data-lucide="edit-3" style="width: 13px; height: 13px;"></i> 編輯此文章' +
+            '</button>' +
+            '<button onclick="deleteExistingPost(\'' + post.id + '\')" class="btn btn-secondary btn-sm" style="color: #D9383A;">' +
+              '<i data-lucide="trash-2" style="width: 13px; height: 13px;"></i> 刪除此文章' +
+            '</button>' +
+            '<div class="badge" style="background-color: var(--text-primary); color: var(--bg-main); font-weight: 600;">' +
+              '100分評測：' + score + ' 分' +
+            '</div>' +
           '</div>' +
         '</div>' +
         '<div class="article-breathing-text">' +
@@ -3333,7 +3491,7 @@
 
   /**
    * ==========================================================================
-   * 部落格首頁流水、防抖搜尋與多維排序
+   * 部落格首頁流水、防抖搜尋與多維排序 (含叫回編輯與刪除操作按鈕)
    * ==========================================================================
    */
   function debounce(func, delay) {
@@ -3459,9 +3617,17 @@
           '<span><i data-lucide="headphones" style="width: 13px; height: 13px; margin-right: 4px;"></i> ' + heroAudioCount + ' 段錄音切片</span>' +
           '<span><i data-lucide="award" style="width: 13px; height: 13px; margin-right: 4px;"></i> 診斷 ' + (heroPost.diagnostic_score || 95) + ' 分</span>' +
         '</div>' +
-        '<button onclick="ViewSwitcher.navigate(\'article\', \'' + heroPost.id + '\')" class="btn btn-primary btn-sm">' +
-          '<i data-lucide="book-open" style="width: 13px; height: 13px;"></i> 進入完整閱讀' +
-        '</button>' +
+        '<div style="display: flex; gap: 8px; align-items: center; flex-wrap: wrap;">' +
+          '<button onclick="editExistingPost(\'' + heroPost.id + '\')" class="btn btn-secondary btn-sm" title="叫回編輯器重新編輯">' +
+            '<i data-lucide="edit-3" style="width: 13px; height: 13px;"></i> 編輯' +
+          '</button>' +
+          '<button onclick="deleteExistingPost(\'' + heroPost.id + '\')" class="btn btn-secondary btn-sm" style="color: #D9383A;" title="永久刪除此文章">' +
+            '<i data-lucide="trash-2" style="width: 13px; height: 13px;"></i> 刪除' +
+          '</button>' +
+          '<button onclick="ViewSwitcher.navigate(\'article\', \'' + heroPost.id + '\')" class="btn btn-primary btn-sm">' +
+            '<i data-lucide="book-open" style="width: 13px; height: 13px;"></i> 閱讀全文' +
+          '</button>' +
+        '</div>' +
       '</div>';
 
     container.appendChild(heroCard);
@@ -3489,9 +3655,16 @@
             '<p class="post-card-hook">' + (p.hook || getCleanText(p.content_html).substring(0, 80)) + '</p>' +
           '</div>' +
           '<div class="post-card-footer">' +
-            '<span>' + pDate + '</span>' +
-            '<span>約 ' + rTime + ' 分鐘</span>' +
-            '<button onclick="ViewSwitcher.navigate(\'article\', \'' + p.id + '\')" class="btn btn-secondary btn-sm" style="height: 28px; padding: 0 8px;">閱讀</button>' +
+            '<span>' + pDate + ' (約 ' + rTime + ' 分鐘)</span>' +
+            '<div style="display: flex; gap: 6px; align-items: center;">' +
+              '<button onclick="editExistingPost(\'' + p.id + '\')" class="btn btn-secondary btn-sm" style="height: 28px; padding: 0 8px; font-size: 11px;" title="叫回編輯">' +
+                '<i data-lucide="edit-3" style="width: 12px; height: 12px;"></i>' +
+              '</button>' +
+              '<button onclick="deleteExistingPost(\'' + p.id + '\')" class="btn btn-secondary btn-sm" style="height: 28px; padding: 0 8px; font-size: 11px; color: #D9383A;" title="刪除文章">' +
+                '<i data-lucide="trash-2" style="width: 12px; height: 12px;"></i>' +
+              '</button>' +
+              '<button onclick="ViewSwitcher.navigate(\'article\', \'' + p.id + '\')" class="btn btn-secondary btn-sm" style="height: 28px; padding: 0 8px; font-size: 11px;">閱讀</button>' +
+            '</div>' +
           '</div>';
 
         grid.appendChild(card);
