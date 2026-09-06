@@ -1,1383 +1,3037 @@
 <!DOCTYPE html>
 <html lang="zh-TW">
 <head>
-  <base target="_top">
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>後台_策略錄音與AI內容工作台</title>
+  <title>特洛伊 AI 語音客製部落格中樞</title>
+  
+  <!-- 引入 Google Noto Sans TC 現代字體 -->
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+TC:wght@400;500;600;700&display=swap" rel="stylesheet">
+  
+  <!-- 引入 Lucide 現代極簡向量圖示庫 -->
+  <script src="https://unpkg.com/lucide@latest"></script>
 
-  <!-- 外部依賴：Tailwind CSS CDN 與 Feather Icons CDN -->
-  <script src="https://cdn.tailwindcss.com"></script>
-  <script src="https://cdn.jsdelivr.net/npm/feather-icons/dist/feather.min.js"></script>
+  <!-- 引入 Google Identity Services (GIS) Client Library -->
+  <script src="https://accounts.google.com/gsi/client" async defer></script>
 
   <style>
     /* ==========================================================================
-       1. CSS Design Tokens & 極簡黑白風全域變數庫
+       CSS Design Tokens、極簡黑白風 Reset 與 RWD 響應式配置
        ========================================================================== */
     :root {
       --bg-main: #FFFFFF;
       --bg-card: #FAFAFA;
       --bg-hover: #F0F0F0;
       --text-primary: #111111;
-      --text-secondary: #666666;
+      --text-secondary: #555555;
       --text-muted: #888888;
       --border-light: #E5E5E5;
-      --border-dark: #111111;
-      --radius-sm: 4px;
-      --radius-md: 8px;
-      --radius-lg: 12px;
-      --font-family: -apple-system, BlinkMacSystemFont, "PingFang TC", "Microsoft JhengHei", system-ui, sans-serif;
+      --border-focus: #111111;
+      --text-h1: 22px;
+      --text-h2: 18px;
+      --text-h3: 15px;
+      --text-body: 14px;
+      --text-caption: 12px;
+      --btn-height: 42px;
+      --radius-default: 8px;
+      --content-max-width: 900px;
+      --line-height-relaxed: 1.85;
+      --bottom-nav-height: 60px;
     }
 
     * {
       box-sizing: border-box;
       margin: 0;
       padding: 0;
+      -webkit-tap-highlight-color: transparent;
     }
 
     body {
+      font-family: 'Noto Sans TC', -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
       background-color: var(--bg-main);
       color: var(--text-primary);
-      font-family: var(--font-family);
-      line-height: 1.6;
-      padding-top: 72px;
-      padding-bottom: 96px;
-      -webkit-font-smoothing: antialiased;
+      font-size: var(--text-body);
+      line-height: var(--line-height-relaxed);
+      letter-spacing: 0.02em;
+      padding-bottom: calc(var(--bottom-nav-height) + 40px);
     }
 
-    h1 { font-size: 22px; font-weight: 600; line-height: 1.4; color: var(--text-primary); }
-    h2 { font-size: 16px; font-weight: 600; line-height: 1.5; color: var(--text-primary); }
-    p, span, label, input, textarea { font-size: 14px; line-height: 1.6; }
-    .text-caption { font-size: 12px; line-height: 1.5; color: var(--text-muted); }
-
-    /* ==========================================================================
-       2. 後台專屬 UI 元件庫樣式
-       ========================================================================== */
-    .btn-primary {
-      display: inline-flex;
-      align-items: center;
-      justify-content: center;
-      gap: 8px;
-      height: 44px;
-      padding: 0 20px;
-      border-radius: var(--radius-md);
-      background-color: var(--border-dark);
-      color: #FFFFFF;
-      font-size: 14px;
-      font-weight: 500;
-      border: 1px solid var(--border-dark);
-      cursor: pointer;
-      transition: transform 0.15s ease, background-color 0.2s ease, opacity 0.2s ease;
-      white-space: nowrap;
-    }
-    .btn-primary:hover { background-color: #222222; transform: scale(0.99); }
-    .btn-primary:active { transform: scale(0.97); }
-    .btn-primary:disabled { opacity: 0.4; cursor: not-allowed; transform: none; }
-
-    .btn-secondary {
-      display: inline-flex;
-      align-items: center;
-      justify-content: center;
-      gap: 8px;
-      height: 44px;
-      padding: 0 18px;
-      border-radius: var(--radius-md);
-      background-color: #FFFFFF;
-      color: var(--text-primary);
-      font-size: 14px;
-      font-weight: 500;
-      border: 1px solid var(--border-light);
-      cursor: pointer;
-      transition: background-color 0.2s ease, border-color 0.2s ease;
-      white-space: nowrap;
-    }
-    .btn-secondary:hover { background-color: var(--bg-hover); border-color: var(--text-secondary); }
-    .btn-secondary:disabled { opacity: 0.4; cursor: not-allowed; }
-
-    .form-input, .form-textarea {
-      width: 100%;
-      background-color: #FFFFFF;
-      border: 1px solid var(--border-light);
-      border-radius: var(--radius-sm);
-      padding: 10px 14px;
-      color: var(--text-primary);
-      font-size: 14px;
-      outline: none;
-      transition: border-color 0.2s ease;
-    }
-    .form-input:focus, .form-textarea:focus { border: 1px solid var(--border-dark); }
-    .form-textarea { resize: vertical; min-height: 96px; }
-
-    .recording-pulse {
-      width: 10px;
-      height: 10px;
-      border-radius: 50%;
-      background-color: var(--border-dark);
-      display: inline-block;
-      animation: recordPulse 1.2s infinite ease-in-out;
-    }
-    @keyframes recordPulse {
-      0% { transform: scale(0.85); opacity: 0.5; }
-      50% { transform: scale(1.2); opacity: 1; }
-      100% { transform: scale(0.85); opacity: 0.5; }
+    a {
+      color: inherit;
+      text-decoration: none;
     }
 
-    .strategy-badge {
-      background-color: var(--bg-card);
-      border: 1px solid var(--border-light);
-      border-radius: var(--radius-md);
-      padding: 16px;
-      cursor: pointer;
-      transition: all 0.2s ease;
-    }
-    .strategy-badge:hover { background-color: var(--bg-hover); border-color: var(--text-secondary); }
-    .strategy-badge.is-selected {
-      border: 2px solid var(--border-dark);
-      background-color: #FFFFFF;
-      box-shadow: 0 4px 12px rgba(0, 0, 0, 0.05);
+    .app-container {
+      max-width: var(--content-max-width);
+      margin: 0 auto;
+      padding: 24px 20px 40px 20px;
     }
 
-    .editor-container {
-      background-color: #FFFFFF;
-      border: 1px solid var(--border-light);
-      border-radius: var(--radius-md);
-      padding: 24px;
-      min-height: 480px;
-      font-size: 15px;
-      line-height: 2.2;
-      letter-spacing: 0.03em;
-      white-space: pre-wrap;
-      color: var(--text-primary);
-      outline: none;
-    }
-    .editor-container:focus { border-color: var(--border-dark); }
-
-    .step-item {
+    /* 頂部品牌導覽列 Navbar */
+    .app-header {
+      border-bottom: 1px solid var(--border-light);
+      padding-bottom: 20px;
+      margin-bottom: 24px;
       display: flex;
+      justify-content: space-between;
       align-items: center;
-      gap: 8px;
-      cursor: pointer;
-      opacity: 0.4;
-      transition: opacity 0.2s ease;
-      user-select: none;
+      flex-wrap: wrap;
+      gap: 16px;
     }
-    .step-item.is-active { opacity: 1; font-weight: 600; }
-    .step-item.is-completed { opacity: 0.85; }
 
-    .step-number {
-      width: 24px;
-      height: 24px;
-      border-radius: 50%;
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      font-size: 12px;
-      background-color: var(--bg-hover);
+    .brand-title {
+      font-size: var(--text-h1);
+      font-weight: 700;
       color: var(--text-primary);
-      border: 1px solid var(--border-light);
-    }
-    .step-item.is-active .step-number { background-color: var(--border-dark); color: #FFFFFF; border-color: var(--border-dark); }
-    .step-item.is-completed .step-number { background-color: #FFFFFF; color: var(--border-dark); border-color: var(--border-dark); }
-
-    #toast-container {
-      position: fixed;
-      top: 84px;
-      right: 24px;
-      z-index: 9999;
-      display: flex;
-      flex-direction: column;
-      gap: 8px;
-      pointer-events: none;
-    }
-    .toast-item {
-      pointer-events: auto;
-      background-color: var(--border-dark);
-      color: #FFFFFF;
-      padding: 12px 20px;
-      border-radius: var(--radius-sm);
-      font-size: 13px;
-      box-shadow: 0 4px 16px rgba(0,0,0,0.15);
       display: flex;
       align-items: center;
       gap: 10px;
-      animation: toastSlideIn 0.25s cubic-bezier(0.16, 1, 0.3, 1);
-      transition: opacity 0.3s ease, transform 0.3s ease;
-    }
-    .toast-item.toast-error { background-color: #111111; border-left: 4px solid #777777; }
-    @keyframes toastSlideIn {
-      from { transform: translateX(40px); opacity: 0; }
-      to { transform: translateX(0); opacity: 1; }
     }
 
-    #global-modal {
-      position: fixed;
-      inset: 0;
-      background-color: rgba(0, 0, 0, 0.4);
-      backdrop-filter: blur(2px);
-      z-index: 9998;
+    .brand-subtitle {
+      font-size: var(--text-caption);
+      color: var(--text-secondary);
+      margin-top: 4px;
+    }
+
+    .header-actions {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      flex-wrap: wrap;
+    }
+
+    /* 離線防護狀態與同步指示器 (Step 19) */
+    .network-badge {
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      font-size: var(--text-caption);
+      color: var(--text-secondary);
+      padding: 4px 10px;
+      background-color: var(--bg-card);
+      border: 1px solid var(--border-light);
+      border-radius: 20px;
+    }
+
+    .network-dot {
+      width: 8px;
+      height: 8px;
+      border-radius: 50%;
+      background-color: #22C55E;
+    }
+
+    .network-dot.offline {
+      background-color: #D9383A;
+    }
+
+    .network-dot.syncing {
+      background-color: #EAB308;
+      animation: pulseDot 1s infinite ease-in-out;
+    }
+
+    @keyframes pulseDot {
+      0%, 100% { transform: scale(1); opacity: 1; }
+      50% { transform: scale(1.3); opacity: 0.6; }
+    }
+
+    /* 頂部步驟與視圖切換列 View Switcher */
+    .step-indicator {
+      display: flex;
+      gap: 8px;
+      margin-bottom: 24px;
+      overflow-x: auto;
+      padding-bottom: 4px;
+    }
+
+    .step-pill {
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      padding: 8px 16px;
+      border-radius: 20px;
+      font-size: var(--text-caption);
+      background-color: var(--bg-card);
+      border: 1px solid var(--border-light);
+      color: var(--text-secondary);
+      white-space: nowrap;
+      cursor: pointer;
+      transition: all 0.2s ease;
+    }
+
+    .step-pill.active {
+      background-color: var(--text-primary);
+      border-color: var(--text-primary);
+      color: var(--bg-main);
+      font-weight: 600;
+    }
+
+    /* 區塊面板樣式 */
+    .panel-section {
+      background-color: var(--bg-card);
+      border: 1px solid var(--border-light);
+      border-radius: var(--radius-default);
+      padding: 24px;
+      margin-bottom: 24px;
+      display: none;
+    }
+
+    .panel-section.active {
+      display: block;
+      animation: fadeIn 0.25s ease;
+    }
+
+    @keyframes fadeIn {
+      from { opacity: 0; transform: translateY(4px); }
+      to { opacity: 1; transform: translateY(0); }
+    }
+
+    .panel-section-title {
+      font-size: var(--text-h2);
+      font-weight: 600;
+      margin-bottom: 16px;
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+
+    /* 按鈕元件規格 */
+    .btn {
+      height: var(--btn-height);
+      padding: 0 18px;
+      border-radius: var(--radius-default);
+      font-size: var(--text-body);
+      font-weight: 500;
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      gap: 8px;
+      cursor: pointer;
+      transition: all 0.2s ease;
+      border: none;
+      outline: none;
+      font-family: inherit;
+    }
+
+    .btn-primary {
+      background-color: var(--text-primary);
+      color: var(--bg-main);
+    }
+
+    .btn-primary:hover {
+      opacity: 0.9;
+    }
+
+    .btn-secondary {
+      background-color: var(--bg-main);
+      color: var(--text-primary);
+      border: 1px solid var(--border-light);
+    }
+
+    .btn-secondary:hover {
+      background-color: var(--bg-hover);
+      border-color: var(--text-primary);
+    }
+
+    .btn-danger {
+      background-color: #D9383A;
+      color: #FFFFFF;
+    }
+
+    .btn-danger:hover {
+      opacity: 0.9;
+    }
+
+    .btn-disabled {
+      opacity: 0.45;
+      cursor: not-allowed !important;
+      pointer-events: none;
+    }
+
+    .btn-sm {
+      height: 32px;
+      padding: 0 12px;
+      font-size: var(--text-caption);
+    }
+
+    /* 擬真動態錄音面板與波形模擬器 */
+    .recorder-box {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      padding: 36px 16px;
+      border: 1px dashed var(--border-light);
+      border-radius: var(--radius-default);
+      background-color: var(--bg-main);
+      text-align: center;
+      margin-bottom: 16px;
+    }
+
+    .timer-display {
+      font-size: 38px;
+      font-weight: 700;
+      letter-spacing: 0.05em;
+      margin: 12px 0 6px 0;
+      font-variant-numeric: tabular-nums;
+      color: var(--text-primary);
+    }
+
+    .chunk-info {
+      font-size: var(--text-caption);
+      color: var(--text-secondary);
+      margin-bottom: 18px;
+    }
+
+    .recording-status-wrap {
+      display: inline-flex;
+      align-items: center;
+      gap: 8px;
+      padding: 4px 12px;
+      background-color: #FEF2F2;
+      border: 1px solid #FEE2E2;
+      border-radius: 16px;
+      font-size: var(--text-caption);
+      color: #991B1B;
+      font-weight: 500;
+      margin-bottom: 8px;
+    }
+
+    .recording-indicator {
+      width: 10px;
+      height: 10px;
+      border-radius: 50%;
+      background-color: #D9383A;
+      animation: pulseDot 1.2s infinite ease-in-out;
+    }
+
+    .waveform-container {
       display: flex;
       align-items: center;
       justify-content: center;
-      padding: 16px;
-      opacity: 0;
-      pointer-events: none;
-      transition: opacity 0.2s ease;
+      gap: 4px;
+      height: 36px;
+      margin-bottom: 20px;
     }
-    #global-modal.is-open { opacity: 1; pointer-events: auto; }
-    .modal-box {
-      background-color: #FFFFFF;
-      border: 1px solid var(--border-light);
-      border-radius: var(--radius-lg);
-      width: 100%;
-      max-width: 520px;
-      padding: 24px;
-      box-shadow: 0 12px 32px rgba(0, 0, 0, 0.1);
-      transform: scale(0.96);
-      transition: transform 0.2s cubic-bezier(0.16, 1, 0.3, 1);
-    }
-    #global-modal.is-open .modal-box { transform: scale(1); }
 
-    .offline-banner {
-      background-color: #111111;
-      color: #FFFFFF;
-      font-size: 12px;
+    .waveform-bar {
+      width: 4px;
+      height: 8px;
+      background-color: var(--border-light);
+      border-radius: 2px;
+      transition: height 0.15s ease, background-color 0.2s ease;
+    }
+
+    .waveform-container.active .waveform-bar {
+      background-color: var(--text-primary);
+      animation: waveMotion 0.8s infinite ease-in-out alternate;
+    }
+
+    .waveform-container.active .waveform-bar:nth-child(1)  { animation-delay: 0.05s; }
+    .waveform-container.active .waveform-bar:nth-child(2)  { animation-delay: 0.15s; }
+    .waveform-container.active .waveform-bar:nth-child(3)  { animation-delay: 0.25s; }
+    .waveform-container.active .waveform-bar:nth-child(4)  { animation-delay: 0.35s; }
+    .waveform-container.active .waveform-bar:nth-child(5)  { animation-delay: 0.45s; }
+    .waveform-container.active .waveform-bar:nth-child(6)  { animation-delay: 0.55s; }
+    .waveform-container.active .waveform-bar:nth-child(7)  { animation-delay: 0.40s; }
+    .waveform-container.active .waveform-bar:nth-child(8)  { animation-delay: 0.30s; }
+    .waveform-container.active .waveform-bar:nth-child(9)  { animation-delay: 0.20s; }
+    .waveform-container.active .waveform-bar:nth-child(10) { animation-delay: 0.10s; }
+    .waveform-container.active .waveform-bar:nth-child(11) { animation-delay: 0.30s; }
+    .waveform-container.active .waveform-bar:nth-child(12) { animation-delay: 0.50s; }
+
+    @keyframes waveMotion {
+      0% { height: 6px; }
+      100% { height: 32px; }
+    }
+
+    .recorder-btn-group {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 12px;
+      justify-content: center;
+    }
+
+    .audio-chunks-list {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 8px;
+      margin-top: 10px;
+    }
+
+    .chunk-badge {
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      background-color: var(--bg-main);
+      border: 1px solid var(--border-light);
       padding: 6px 12px;
-      text-align: center;
+      border-radius: 4px;
+      font-size: 12px;
+      color: var(--text-secondary);
+    }
+
+    /* 提案卡片網格 */
+    .proposals-grid {
+      display: flex;
+      flex-direction: column;
+      gap: 12px;
+      max-height: 480px;
+      overflow-y: auto;
+      padding-right: 4px;
+      margin-bottom: 20px;
+    }
+
+    .proposal-card {
+      background-color: var(--bg-main);
+      border: 1px solid var(--border-light);
+      border-radius: var(--radius-default);
+      padding: 16px;
+      cursor: pointer;
+      transition: all 0.2s ease;
+      display: flex;
+      gap: 14px;
+      align-items: flex-start;
+    }
+
+    .proposal-card:hover {
+      border-color: var(--text-primary);
+    }
+
+    .proposal-card.selected {
+      border: 2px solid var(--text-primary);
+      background-color: var(--bg-card);
+    }
+
+    .proposal-radio {
+      margin-top: 4px;
+      accent-color: var(--text-primary);
+      cursor: pointer;
+    }
+
+    .proposal-title {
+      font-weight: 600;
+      font-size: 15px;
+      margin-bottom: 6px;
+      line-height: 1.5;
+    }
+
+    .proposal-tags {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 6px;
+      margin-bottom: 6px;
+    }
+
+    .badge {
+      font-size: 11px;
+      padding: 2px 8px;
+      background-color: var(--bg-hover);
+      border-radius: 4px;
+      color: var(--text-secondary);
+    }
+
+    .proposal-angle {
+      font-size: var(--text-caption);
+      color: var(--text-muted);
+      line-height: 1.6;
+    }
+
+    /* 表單與文章編輯器 */
+    .form-group {
+      margin-bottom: 18px;
+    }
+
+    .form-label {
+      display: block;
+      font-size: var(--text-caption);
+      font-weight: 600;
+      margin-bottom: 6px;
+      color: var(--text-secondary);
+    }
+
+    .form-hint {
+      font-size: 11px;
+      color: var(--text-muted);
+      margin-top: 4px;
+    }
+
+    .input-field, .textarea-field, .select-field {
+      width: 100%;
+      padding: 12px 14px;
+      border: 1px solid var(--border-light);
+      border-radius: var(--radius-default);
+      background-color: var(--bg-main);
+      font-size: var(--text-body);
+      color: var(--text-primary);
+      transition: border-color 0.2s ease;
+      font-family: inherit;
+    }
+
+    .input-field:focus, .textarea-field:focus, .select-field:focus {
+      outline: none;
+      border-color: var(--border-focus);
+    }
+
+    .textarea-field {
+      resize: vertical;
+      min-height: 220px;
+      line-height: 1.8;
+    }
+
+    .breathing-preview {
+      background-color: var(--bg-main);
+      border: 1px solid var(--border-light);
+      border-radius: var(--radius-default);
+      padding: 24px;
+      max-height: 480px;
+      overflow-y: auto;
+      margin-bottom: 16px;
+    }
+
+    .breathing-preview p {
+      margin-bottom: 20px;
+      line-height: 1.9;
+    }
+
+    .breathing-preview h2 {
+      font-size: 18px;
+      font-weight: 700;
+      margin: 28px 0 16px 0;
+      padding-bottom: 8px;
+      border-bottom: 1px solid var(--border-light);
+    }
+
+    .action-bar {
+      display: flex;
+      justify-content: flex-end;
+      gap: 12px;
+      margin-top: 20px;
+      flex-wrap: wrap;
+    }
+
+    /* 前台篩選列與搜尋防抖 */
+    .filter-toolbar {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 12px;
+      margin-bottom: 24px;
+      background-color: var(--bg-card);
+      border: 1px solid var(--border-light);
+      padding: 16px;
+      border-radius: var(--radius-default);
+      align-items: center;
+    }
+
+    .search-input-wrap {
+      flex: 1;
+      min-width: 220px;
+      position: relative;
+    }
+
+    .search-icon-pos {
+      position: absolute;
+      left: 12px;
+      top: 50%;
+      transform: translateY(-50%);
+      color: var(--text-muted);
+      pointer-events: none;
+    }
+
+    .search-input-wrap input {
+      padding-left: 36px;
+    }
+
+    .filter-select-wrap {
+      min-width: 150px;
+    }
+
+    /* 最新一集置頂焦點卡片 Hero Feature Card */
+    .hero-feature-card {
+      background-color: var(--bg-card);
+      border: 2px solid var(--text-primary);
+      border-radius: var(--radius-default);
+      padding: 28px;
+      margin-bottom: 28px;
+    }
+
+    .hero-tag-row {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-bottom: 12px;
+      flex-wrap: wrap;
+      gap: 8px;
+    }
+
+    .hero-badge {
+      background-color: var(--text-primary);
+      color: var(--bg-main);
+      font-size: 11px;
+      font-weight: 700;
+      padding: 4px 10px;
+      border-radius: 4px;
+      letter-spacing: 0.05em;
+    }
+
+    .hero-title {
+      font-size: 20px;
+      font-weight: 700;
+      line-height: 1.4;
+      margin-bottom: 12px;
+      color: var(--text-primary);
+    }
+
+    .hero-hook {
+      font-size: 14px;
+      color: var(--text-secondary);
+      line-height: 1.8;
+      margin-bottom: 20px;
+    }
+
+    .hero-meta-row {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      border-top: 1px solid var(--border-light);
+      padding-top: 16px;
+      font-size: var(--text-caption);
+      color: var(--text-muted);
+      flex-wrap: wrap;
+      gap: 12px;
+    }
+
+    .hero-stats {
+      display: flex;
+      align-items: center;
+      gap: 14px;
+    }
+
+    /* 歷史文章瀑布流網格 */
+    .posts-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+      gap: 20px;
+    }
+
+    .post-card {
+      background-color: var(--bg-main);
+      border: 1px solid var(--border-light);
+      border-radius: var(--radius-default);
+      padding: 20px;
+      display: flex;
+      flex-direction: column;
+      justify-content: space-between;
+      transition: transform 0.2s ease, border-color 0.2s ease;
+    }
+
+    .post-card:hover {
+      border-color: var(--text-primary);
+      transform: translateY(-2px);
+    }
+
+    .post-card-title {
+      font-size: 16px;
+      font-weight: 600;
+      line-height: 1.45;
+      margin-bottom: 10px;
+      color: var(--text-primary);
+    }
+
+    .post-card-hook {
+      font-size: 13px;
+      color: var(--text-secondary);
+      line-height: 1.7;
+      margin-bottom: 16px;
+      display: -webkit-box;
+      -webkit-line-clamp: 3;
+      -webkit-box-orient: vertical;
+      overflow: hidden;
+    }
+
+    .post-card-footer {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      padding-top: 12px;
+      border-top: 1px solid var(--border-light);
+      font-size: var(--text-caption);
+      color: var(--text-muted);
+    }
+
+    /* ==========================================================================
+       Step 18: 無縫串流音訊播放器 (SeamlessAudioPlayer) 專用樣式
+       ========================================================================== */
+    .audio-player-card {
+      background-color: var(--bg-main);
+      border: 1px solid var(--border-light);
+      border-radius: var(--radius-default);
+      padding: 20px;
+      margin-bottom: 24px;
+      box-shadow: 0 4px 12px rgba(0,0,0,0.03);
+    }
+
+    .player-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-bottom: 12px;
+      font-size: var(--text-caption);
+      color: var(--text-secondary);
+    }
+
+    .player-progress-container {
+      width: 100%;
+      height: 6px;
+      background-color: var(--bg-hover);
+      border-radius: 3px;
+      cursor: pointer;
+      position: relative;
+      margin-bottom: 12px;
+    }
+
+    .player-progress-fill {
+      height: 100%;
+      width: 0%;
+      background-color: var(--text-primary);
+      border-radius: 3px;
+      transition: width 0.1s linear;
+    }
+
+    .player-controls-row {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      flex-wrap: wrap;
+      gap: 12px;
+    }
+
+    .player-btn-group {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+    }
+
+    .player-ctrl-btn {
+      background: none;
+      border: none;
+      cursor: pointer;
+      color: var(--text-primary);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      padding: 6px;
+      border-radius: 50%;
+      transition: background-color 0.2s ease;
+    }
+
+    .player-ctrl-btn:hover {
+      background-color: var(--bg-hover);
+    }
+
+    .player-play-btn {
+      width: 44px;
+      height: 44px;
+      background-color: var(--text-primary);
+      color: var(--bg-main);
+      border-radius: 50%;
+    }
+
+    .player-play-btn:hover {
+      background-color: #333333;
+    }
+
+    .player-speed-btn {
+      font-size: 11px;
+      font-weight: 700;
+      padding: 4px 8px;
+      border: 1px solid var(--border-light);
+      border-radius: 12px;
+      background-color: var(--bg-card);
+      cursor: pointer;
+    }
+
+    /* ==========================================================================
+       Step 18: Skeleton Loading 骨架屏閃爍動畫
+       ========================================================================== */
+    .skeleton {
+      background: linear-gradient(90deg, #F0F0F0 25%, #E4E4E4 50%, #F0F0F0 75%);
+      background-size: 200% 100%;
+      animation: skeletonShimmer 1.5s infinite;
+      border-radius: 4px;
+    }
+
+    @keyframes skeletonShimmer {
+      0% { background-position: 200% 0; }
+      100% { background-position: -200% 0; }
+    }
+
+    .skeleton-text {
+      height: 14px;
+      margin-bottom: 10px;
+      width: 100%;
+    }
+
+    .skeleton-title {
+      height: 24px;
+      margin-bottom: 16px;
+      width: 70%;
+    }
+
+    /* ==========================================================================
+       Step 19: 讀者留言系統、互動愛心與 100 分診斷表樣式
+       ========================================================================== */
+    .article-body-view {
+      background-color: var(--bg-main);
+      border: 1px solid var(--border-light);
+      border-radius: var(--radius-default);
+      padding: 32px 24px;
+      margin-bottom: 24px;
+    }
+
+    .article-body-view h1 {
+      font-size: 24px;
+      font-weight: 700;
+      margin-bottom: 16px;
+      line-height: 1.4;
+    }
+
+    .article-body-view .article-meta-bar {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      padding-bottom: 20px;
+      border-bottom: 1px solid var(--border-light);
+      margin-bottom: 28px;
+      font-size: var(--text-caption);
+      color: var(--text-muted);
+      flex-wrap: wrap;
+      gap: 12px;
+    }
+
+    .article-breathing-text p {
+      margin-bottom: 24px;
+      line-height: 1.95;
+      font-size: 15px;
+    }
+
+    .article-breathing-text h2 {
+      font-size: 19px;
+      font-weight: 700;
+      margin: 36px 0 18px 0;
+      padding-bottom: 8px;
+      border-bottom: 1px solid var(--border-light);
+    }
+
+    /* 100 分制診斷評分表卡片 (Step 17) */
+    .diagnostic-card {
+      background-color: var(--bg-card);
+      border: 1px solid var(--border-light);
+      border-radius: var(--radius-default);
+      padding: 24px;
+      margin: 36px 0;
+    }
+
+    .diagnostic-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-bottom: 16px;
+      padding-bottom: 12px;
+      border-bottom: 1px solid var(--border-light);
+    }
+
+    .diagnostic-score-badge {
+      font-size: 22px;
+      font-weight: 700;
+      color: var(--text-primary);
+    }
+
+    .diagnostic-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+      gap: 14px;
+    }
+
+    .diagnostic-item {
+      font-size: 13px;
+      background-color: var(--bg-main);
+      border: 1px solid var(--border-light);
+      padding: 12px;
+      border-radius: 6px;
+    }
+
+    .diagnostic-item-title {
+      color: var(--text-muted);
+      font-size: 11px;
+      margin-bottom: 4px;
+    }
+
+    .diagnostic-item-val {
+      font-weight: 600;
+      color: var(--text-primary);
+    }
+
+    /* 互動按鈕列與愛心計數 (Step 19) */
+    .interaction-bar {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-top: 32px;
+      padding-top: 20px;
+      border-top: 1px solid var(--border-light);
+      flex-wrap: wrap;
+      gap: 14px;
+    }
+
+    .heart-btn {
+      display: inline-flex;
+      align-items: center;
+      gap: 8px;
+      padding: 8px 16px;
+      border-radius: 20px;
+      background-color: var(--bg-card);
+      border: 1px solid var(--border-light);
+      cursor: pointer;
+      font-size: 13px;
+      transition: all 0.2s ease;
+    }
+
+    .heart-btn.liked {
+      background-color: #FEF2F2;
+      border-color: #F87171;
+      color: #DC2626;
+    }
+
+    /* 留言區塊樣式 */
+    .comments-section {
+      background-color: var(--bg-card);
+      border: 1px solid var(--border-light);
+      border-radius: var(--radius-default);
+      padding: 24px;
+      margin-top: 28px;
+    }
+
+    .comment-auth-box {
+      margin-bottom: 20px;
+      padding-bottom: 16px;
+      border-bottom: 1px solid var(--border-light);
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      flex-wrap: wrap;
+      gap: 12px;
+    }
+
+    .user-profile-badge {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+    }
+
+    .user-avatar-img {
+      width: 32px;
+      height: 32px;
+      border-radius: 50%;
+      border: 1px solid var(--border-light);
+    }
+
+    .comment-item {
+      padding: 16px 0;
+      border-bottom: 1px solid var(--border-light);
+    }
+
+    .comment-item:last-child {
+      border-bottom: none;
+    }
+
+    .comment-meta {
+      display: flex;
+      justify-content: space-between;
+      font-size: var(--text-caption);
+      color: var(--text-muted);
+      margin-bottom: 6px;
+    }
+
+    .comment-content {
+      font-size: 14px;
+      color: var(--text-primary);
+      line-height: 1.6;
+    }
+
+    /* 底部導覽列 */
+    .bottom-nav {
       position: fixed;
-      top: 64px;
+      bottom: 0;
       left: 0;
       right: 0;
-      z-index: 49;
+      height: var(--bottom-nav-height);
+      background-color: var(--bg-main);
+      border-top: 1px solid var(--border-light);
+      display: flex;
+      justify-content: space-around;
+      align-items: center;
+      z-index: 1000;
+      padding: 0 10px;
+    }
+
+    .bottom-nav-item {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      font-size: 11px;
+      color: var(--text-secondary);
+      background: none;
+      border: none;
+      cursor: pointer;
+      gap: 3px;
+      padding: 6px 10px;
+      border-radius: 6px;
+      transition: all 0.2s ease;
+      font-family: inherit;
+    }
+
+    .bottom-nav-item.active {
+      color: var(--text-primary);
+      font-weight: 600;
+    }
+
+    /* 全域 Modal */
+    .modal-backdrop {
+      position: fixed;
+      top: 0; left: 0; right: 0; bottom: 0;
+      background-color: rgba(0, 0, 0, 0.4);
       display: none;
+      align-items: center;
+      justify-content: center;
+      z-index: 2000;
+      padding: 20px;
+    }
+
+    .modal-backdrop.open {
+      display: flex;
+      animation: modalFadeIn 0.2s ease;
+    }
+
+    @keyframes modalFadeIn {
+      from { opacity: 0; }
+      to { opacity: 1; }
+    }
+
+    .modal-dialog {
+      background-color: var(--bg-main);
+      border: 1px solid var(--border-light);
+      border-radius: var(--radius-default);
+      max-width: 500px;
+      width: 100%;
+      padding: 24px;
+      box-shadow: 0 10px 25px rgba(0, 0, 0, 0.08);
+    }
+
+    .modal-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-bottom: 14px;
+    }
+
+    .modal-title {
+      font-size: var(--text-h2);
+      font-weight: 700;
+    }
+
+    .modal-body {
+      font-size: var(--text-body);
+      color: var(--text-secondary);
+      margin-bottom: 24px;
+      line-height: 1.7;
+    }
+
+    .modal-footer {
+      display: flex;
+      justify-content: flex-end;
+      gap: 12px;
+    }
+
+    /* 全域 Toast */
+    .toast-container {
+      position: fixed;
+      top: 20px;
+      right: 20px;
+      z-index: 3000;
+      display: flex;
+      flex-direction: column;
+      gap: 10px;
+      pointer-events: none;
+    }
+
+    .toast-item {
+      pointer-events: auto;
+      padding: 12px 18px;
+      background-color: var(--text-primary);
+      color: var(--bg-main);
+      border-radius: var(--radius-default);
+      font-size: var(--text-body);
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+      animation: slideIn 0.25s ease;
+      min-width: 260px;
+      justify-content: space-between;
+    }
+
+    .toast-item.error { background-color: #D9383A; }
+    .toast-item.success { background-color: #111111; }
+    .toast-item.info { background-color: #333333; }
+
+    @keyframes slideIn {
+      from { transform: translateX(100%); opacity: 0; }
+      to { transform: translateX(0); opacity: 1; }
+    }
+
+    /* 空狀態提示 Empty State */
+    .empty-state {
+      text-align: center;
+      padding: 48px 20px;
+      background-color: var(--bg-card);
+      border: 1px dashed var(--border-light);
+      border-radius: var(--radius-default);
+      color: var(--text-secondary);
+    }
+
+    .empty-state-title {
+      font-size: 15px;
+      font-weight: 600;
+      margin: 12px 0 6px 0;
+      color: var(--text-primary);
     }
   </style>
 </head>
 <body>
 
-  <!-- 離線保護警示橫幅 -->
-  <div id="offlineBanner" class="offline-banner">
-    網路已斷線，錄音切片將自動暫存於本機 IndexedDB，復網時將自動為您補傳。
-  </div>
+  <div class="app-container">
+    <!-- 頂部品牌導覽列 Navbar -->
+    <header class="app-header">
+      <div>
+        <h1 class="brand-title">
+          <i data-lucide="cpu" style="width: 22px; height: 22px;"></i>
+          特洛伊 AI 語音客製部落格中樞
+        </h1>
+        <p class="brand-subtitle">創業者的時間貧窮解放師 ｜ 讓AI 為你效勞、讓創業不再過勞！</p>
+      </div>
+      <div class="header-actions">
+        <!-- 離線與同步防護徽章 (Step 19) -->
+        <div class="network-badge" id="network-badge">
+          <span class="network-dot" id="network-dot"></span>
+          <span id="network-text">連線正常</span>
+        </div>
+        <button class="btn btn-secondary btn-sm" onclick="confirmClearDraft()">
+          <i data-lucide="trash-2" style="width: 14px; height: 14px;"></i> 清除草稿
+        </button>
+        <button class="btn btn-secondary btn-sm" id="btn-header-switch-view" onclick="toggleFrontBackView()">
+          <i data-lucide="layout-grid" style="width: 14px; height: 14px;"></i> 前台文章列表
+        </button>
+      </div>
+    </header>
 
-  <!-- 頂部 Navbar 與工作流階段指示器 -->
-  <header class="fixed top-0 left-0 right-0 h-[64px] bg-white border-b border-[#E5E5E5] z-50 px-6 flex items-center justify-between">
-    <div class="flex items-center gap-4">
-      <div class="flex items-center gap-2">
-        <i data-feather="cpu" class="w-5 h-5 text-[#111111]"></i>
-        <span class="font-semibold text-[15px] tracking-tight text-[#111111]">GrowthX 語音內容引擎</span>
+    <!-- 頂部視圖導航切換列 View Switcher -->
+    <nav class="step-indicator">
+      <div class="step-pill" id="pill-step-blog" onclick="ViewSwitcher.navigate('blog')">
+        <i data-lucide="book-open" style="width: 14px; height: 14px;"></i> 前台文章總覽
       </div>
-      <div class="px-2.5 py-0.5 rounded text-[12px] font-mono bg-[#F0F0F0] text-[#111111] border border-[#E5E5E5]" id="headerEpisodeBadge">
-        EP001
+      <div class="step-pill active" id="pill-step1" onclick="ViewSwitcher.navigate('record')">
+        <i data-lucide="mic" style="width: 14px; height: 14px;"></i> 1. 語音錄製切片
       </div>
-    </div>
-
-    <!-- 四階段橫向工作流指示器 -->
-    <nav class="hidden md:flex items-center gap-6" id="workflowNav">
-      <div class="step-item is-active" data-step="1" data-target="strategy-card">
-        <span class="step-number">1</span>
-        <span>策略設定</span>
+      <div class="step-pill" id="pill-step2" onclick="ViewSwitcher.navigate('proposals')">
+        <i data-lucide="list-checks" style="width: 14px; height: 14px;"></i> 2. AI 兩階段選題
       </div>
-      <span class="text-[#E5E5E5]">/</span>
-      <div class="step-item" data-step="2" data-target="recorder-card">
-        <span class="step-number">2</span>
-        <span>語音錄製</span>
+      <div class="step-pill" id="pill-step3" onclick="ViewSwitcher.navigate('editor')">
+        <i data-lucide="file-text" style="width: 14px; height: 14px;"></i> 3. 內文編輯預覽
       </div>
-      <span class="text-[#E5E5E5]">/</span>
-      <div class="step-item" data-step="3" data-target="proposals-card">
-        <span class="step-number">3</span>
-        <span>爆款策劃</span>
-      </div>
-      <span class="text-[#E5E5E5]">/</span>
-      <div class="step-item" data-step="4" data-target="editor-card">
-        <span class="step-number">4</span>
-        <span>審查發布</span>
+      <div class="step-pill" id="pill-step4" onclick="ViewSwitcher.navigate('publish')">
+        <i data-lucide="send" style="width: 14px; height: 14px;"></i> 4. 發布至 GitHub
       </div>
     </nav>
 
-    <div class="flex items-center gap-3">
-      <span class="inline-block w-2 h-2 rounded-full bg-[#111111]" id="networkIndicator"></span>
-      <span class="text-caption" id="networkStatusText">連線正常</span>
-    </div>
-  </header>
+    <!-- 視圖 0: 前台文章總覽與瀑布流 -->
+    <section class="panel-section" id="panel-step-blog">
+      <h2 class="panel-section-title">
+        <i data-lucide="library"></i> 發布文章總庫與讀者瀑布流
+      </h2>
 
-  <!-- 後台主容器 #admin-app -->
-  <main id="admin-app" class="max-w-[1280px] mx-auto px-4 md:px-8 py-6">
-    <div class="grid grid-cols-1 lg:grid-cols-12 gap-8">
-      
-      <!-- 左欄：策略定位與即時錄音切片區 -->
-      <section class="lg:col-span-5 flex flex-col gap-8">
-        
-        <!-- 1. #strategy-card：策略定位設定區 -->
-        <div id="strategy-card" class="bg-[#FAFAFA] border border-[#E5E5E5] rounded-[12px] p-6 flex flex-col gap-5">
-          <div class="flex items-center justify-between border-b border-[#E5E5E5] pb-4">
-            <div class="flex items-center gap-2">
-              <i data-feather="target" class="w-4 h-4 text-[#111111]"></i>
-              <h2>策略定位設定</h2>
-            </div>
-            <button id="btnInitDbManual" class="btn-secondary text-[12px] h-8 px-3" title="初始化或檢查試算表架構">
-              <i data-feather="database" class="w-3.5 h-3.5"></i>
-              <span>檢查資料庫</span>
+      <!-- 多維度篩選排序列 (Step 14) -->
+      <div class="filter-toolbar">
+        <div class="search-input-wrap">
+          <i data-lucide="search" class="search-icon-pos" style="width: 16px; height: 16px;"></i>
+          <input type="text" class="input-field" id="post-search-input" placeholder="搜尋文章標題、摘要關鍵字..." oninput="handleSearchInputDebounced(this.value)">
+        </div>
+        <div class="filter-select-wrap">
+          <select class="select-field" id="post-sort-select" onchange="handleSortChange(this.value)">
+            <option value="newest">發布時間：由新到舊</option>
+            <option value="oldest">發布時間：由舊到新</option>
+            <option value="popular">成效熱門度排序</option>
+          </select>
+        </div>
+        <button class="btn btn-secondary btn-sm" onclick="resetPostFilters()">
+          <i data-lucide="rotate-ccw" style="width: 14px; height: 14px;"></i> 重設篩選
+        </button>
+      </div>
+
+      <!-- 文章渲染容器 -->
+      <div id="posts-display-container"></div>
+    </section>
+
+    <!-- 視圖 0.5: 獨立文章閱讀與無縫音訊播放檢視 (Step 18 & Step 19) -->
+    <section class="panel-section" id="panel-step-article">
+      <div class="action-bar" style="justify-content: flex-start; margin-top: 0; margin-bottom: 16px;">
+        <button class="btn btn-secondary btn-sm" onclick="ViewSwitcher.navigate('blog')">
+          <i data-lucide="arrow-left" style="width: 14px; height: 14px;"></i> 返回文章總覽
+        </button>
+      </div>
+
+      <!-- 讀者端多切片無縫串流音訊播放器 SeamlessAudioPlayer (Step 18) -->
+      <div class="audio-player-card" id="seamless-audio-player-card">
+        <div class="player-header">
+          <span><i data-lucide="headphones" style="width: 14px; height: 14px; vertical-align: middle; margin-right: 4px;"></i> 原聲音檔無縫切片串流</span>
+          <span id="player-chunk-status">正在載入音訊切片...</span>
+        </div>
+
+        <div class="player-progress-container" id="player-progress-track" onclick="SeamlessAudioPlayer.seek(event)">
+          <div class="player-progress-fill" id="player-progress-bar"></div>
+        </div>
+
+        <div class="player-controls-row">
+          <div class="player-btn-group">
+            <button class="player-ctrl-btn" onclick="SeamlessAudioPlayer.skip(-15)" title="倒退 15 秒">
+              <i data-lucide="rotate-ccw" style="width: 18px; height: 18px;"></i>
+            </button>
+            <button class="player-ctrl-btn player-play-btn" id="player-toggle-btn" onclick="SeamlessAudioPlayer.togglePlay()">
+              <i data-lucide="play" id="player-toggle-icon" style="width: 20px; height: 20px;"></i>
+            </button>
+            <button class="player-ctrl-btn" onclick="SeamlessAudioPlayer.skip(15)" title="快轉 15 秒">
+              <i data-lucide="rotate-cw" style="width: 18px; height: 18px;"></i>
             </button>
           </div>
 
-          <div class="flex flex-col gap-1.5">
-            <label class="text-caption font-medium text-[#666666]">單集編號 (Episode ID) <span class="text-red-500">*</span></label>
-            <input type="text" id="inputEpisodeId" class="form-input" placeholder="例：EP001" value="EP001">
+          <div style="font-size: 12px; color: var(--text-muted); font-variant-numeric: tabular-nums;">
+            <span id="player-current-time">00:00</span> / <span id="player-total-duration">--:--</span>
           </div>
 
-          <div class="flex flex-col gap-1.5">
-            <label class="text-caption font-medium text-[#666666]">目標客群描述 (Target Audience) <span class="text-red-500">*</span></label>
-            <input type="text" id="inputAudience" class="form-input" placeholder="例：3人以下微型創業團隊、一人公司校長兼撞鐘">
-          </div>
+          <button class="player-speed-btn" id="player-speed-indicator" onclick="SeamlessAudioPlayer.cycleSpeed()">
+            1.0x 倍速
+          </button>
+        </div>
+      </div>
 
-          <div class="flex flex-col gap-1.5">
-            <label class="text-caption font-medium text-[#666666]">核心痛點分析 (Core Pain Points) <span class="text-red-500">*</span></label>
-            <textarea id="inputPainPoint" class="form-textarea" placeholder="例：缺乏技術團隊、日常被繁雜庶務淹沒、無法產出高品質品牌內容"></textarea>
-          </div>
+      <!-- 正式文章內文閱讀區 (含黃山料極致呼吸感排版與 100 分診斷表) -->
+      <article class="article-body-view" id="article-view-content">
+        <!-- 骨架屏載入預設 -->
+        <div class="skeleton skeleton-title"></div>
+        <div class="skeleton skeleton-text" style="width: 40%;"></div>
+        <div class="skeleton skeleton-text"></div>
+        <div class="skeleton skeleton-text"></div>
+      </article>
 
-          <div class="flex flex-col gap-1.5">
-            <label class="text-caption font-medium text-[#666666]">搜尋關鍵字組 (SEO Keywords) <span class="text-red-500">*</span></label>
-            <input type="text" id="inputKeywords" class="form-input" placeholder="例：一人公司, AI自動化, Vibe Coding, 數位轉型">
-          </div>
+      <!-- 讀者留言板與 Google 帳號授權互動系統 (Step 19) -->
+      <section class="comments-section" id="comments-container">
+        <h3 style="font-size: 16px; font-weight: 700; margin-bottom: 16px;">
+          <i data-lucide="message-square" style="width: 16px; height: 16px; margin-right: 6px; vertical-align: middle;"></i> 讀者迴響討論
+        </h3>
 
-          <button id="btnSaveStrategy" class="btn-primary w-full">
-            <i data-feather="check" class="w-4 h-4"></i>
-            <span>鎖定策略並存檔</span>
+        <div class="comment-auth-box">
+          <div id="comment-user-info">
+            <span style="font-size: 13px; color: var(--text-muted);">尚未登入，將以「訪客創業者」身分留言</span>
+          </div>
+          <div id="g_id_onload"
+               data-client_id="YOUR_GOOGLE_CLIENT_ID.apps.googleusercontent.com"
+               data-callback="handleGoogleLoginResponse"
+               data-auto_prompt="false">
+          </div>
+          <div class="g_id_signin" data-type="standard" data-size="medium" data-theme="outline" data-text="signin_with" data-shape="pill"></div>
+        </div>
+
+        <div class="form-group">
+          <textarea class="textarea-field" id="new-comment-input" style="min-height: 80px;" placeholder="寫下您的共鳴觀點或提問..."></textarea>
+        </div>
+        <div class="action-bar" style="margin-top: 10px;">
+          <button class="btn btn-primary btn-sm" onclick="submitCommentAction()">
+            <i data-lucide="send" style="width: 12px; height: 12px;"></i> 送出留言
           </button>
         </div>
 
-        <!-- 2. #recorder-card：錄音與即時切片轉錄進度區 -->
-        <div id="recorder-card" class="bg-[#FAFAFA] border border-[#E5E5E5] rounded-[12px] p-6 flex flex-col gap-5">
-          <div class="flex items-center justify-between border-b border-[#E5E5E5] pb-4">
-            <div class="flex items-center gap-2">
-              <i data-feather="mic" class="w-4 h-4 text-[#111111]"></i>
-              <h2>即時切片錄音儀表板</h2>
-            </div>
-            <div class="flex items-center gap-2">
-              <span id="recordLed" class="hidden recording-pulse"></span>
-              <span id="recordingTimerDisplay" class="font-mono text-[14px] font-semibold text-[#111111]">00:00</span>
-            </div>
-          </div>
-
-          <div class="flex items-center gap-3">
-            <button id="btnStartRecord" class="btn-primary flex-1">
-              <i data-feather="play" class="w-4 h-4"></i>
-              <span>開始錄音</span>
-            </button>
-            <button id="btnPauseRecord" class="btn-secondary flex-1" disabled>
-              <i data-feather="pause" class="w-4 h-4"></i>
-              <span>暫停</span>
-            </button>
-            <button id="btnStopRecord" class="btn-secondary flex-1" disabled>
-              <i data-feather="square" class="w-4 h-4"></i>
-              <span>結束並封存</span>
-            </button>
-          </div>
-
-          <!-- 音訊試聽播放器組件 -->
-          <div id="audioPlayerSection" class="hidden flex flex-col gap-2 p-3 bg-white border border-[#E5E5E5] rounded-[8px]">
-            <span class="text-caption font-medium text-[#666666]">完整錄音試聽：</span>
-            <audio id="fullAudioPreview" controls class="w-full h-9"></audio>
-          </div>
-
-          <div class="flex flex-col gap-2">
-            <div class="flex items-center justify-between">
-              <span class="text-caption font-medium text-[#666666]">分段逐字稿滾動清單 (每 60 秒即時轉錄)</span>
-              <span class="text-caption text-[#888888]" id="chunkCountBadge">0 個切片</span>
-            </div>
-            <div id="transcript-feed" class="flex flex-col gap-2.5 max-h-[320px] overflow-y-auto p-3 bg-white border border-[#E5E5E5] rounded-[8px]">
-              <div class="text-caption text-[#888888] text-center py-8" id="emptyTranscriptNotice">
-                尚未開始錄音，開始後將每 60 秒產生切片文字。
-              </div>
-            </div>
-          </div>
+        <div id="comments-list-wrap" style="margin-top: 20px;">
+          <div style="color: var(--text-muted); font-size: 13px;">載入留言中...</div>
         </div>
-
       </section>
+    </section>
 
-      <!-- 右欄：爆款策略提案與正式長文編輯區 -->
-      <section class="lg:col-span-7 flex flex-col gap-8">
-        
-        <!-- 3. #proposals-card：階段一 20 組爆款策略選題區 -->
-        <div id="proposals-card" class="bg-[#FAFAFA] border border-[#E5E5E5] rounded-[12px] p-6 flex flex-col gap-5">
-          <div class="flex items-center justify-between border-b border-[#E5E5E5] pb-4">
-            <div class="flex items-center gap-2">
-              <i data-feather="compass" class="w-4 h-4 text-[#111111]"></i>
-              <h2>階段一：20 組爆款策略選題庫</h2>
-            </div>
-            <button id="btnGenerateStrategies" class="btn-secondary text-[13px] h-9 px-4">
-              <i data-feather="zap" class="w-4 h-4"></i>
-              <span>提煉 20 組策略</span>
-            </button>
-          </div>
-
-          <!-- 50 字觀點摘要區 -->
-          <div id="corePerspectiveBox" class="hidden p-4 bg-white border border-[#E5E5E5] rounded-[8px]">
-            <span class="text-caption font-medium text-[#666666] block mb-1">50 字核心破局觀點：</span>
-            <p id="corePerspectiveText" class="text-[14px] text-[#111111] leading-relaxed"></p>
-          </div>
-
-          <!-- 20 組策略提案清單容器 -->
-          <div id="proposalsList" class="flex flex-col gap-3 max-h-[420px] overflow-y-auto pr-1">
-            <div class="text-caption text-[#888888] text-center py-10">
-              請先完成錄音並點選「提煉 20 組策略」，AI 將為您提煉 20 組精準選題。
-            </div>
-          </div>
+    <!-- 視圖 1: 錄音控制、60 秒切片與波形指示 (Step 13 & Step 16) -->
+    <section class="panel-section active" id="panel-step1">
+      <h2 class="panel-section-title">
+        <i data-lucide="mic"></i> 錄音中樞 (每 60 秒自動切片並上傳至 Google Drive)
+      </h2>
+      
+      <div class="recorder-box">
+        <div class="recording-status-wrap" id="recording-status-badge" style="display: none;">
+          <span class="recording-indicator"></span>
+          <span id="recording-status-text">錄音進行中</span>
         </div>
 
-        <!-- 4. #editor-card：階段二正式文章富文本編輯與審核發布區 -->
-        <div id="editor-card" class="bg-[#FAFAFA] border border-[#E5E5E5] rounded-[12px] p-6 flex flex-col gap-5">
-          <div class="flex items-center justify-between border-b border-[#E5E5E5] pb-4">
-            <div class="flex items-center gap-2">
-              <i data-feather="file-text" class="w-4 h-4 text-[#111111]"></i>
-              <h2>階段二：正式文章審查與發布前編輯</h2>
-            </div>
-            <div class="flex items-center gap-2">
-              <button id="btnGenerateArticle" class="btn-secondary text-[13px] h-9 px-4" disabled>
-                <i data-feather="feather" class="w-4 h-4"></i>
-                <span>生成正式長文與配圖</span>
-              </button>
-            </div>
-          </div>
+        <div class="timer-display" id="timer-text">00:00</div>
 
-          <!-- 選定主標題 -->
-          <div class="flex flex-col gap-1.5">
-            <label class="text-caption font-medium text-[#666666]">選定爆款主標題</label>
-            <input type="text" id="edit-title" class="form-input font-medium" placeholder="點選上方策略提案自動帶入或直接輸入">
-          </div>
-
-          <!-- 封面圖預覽與替換 -->
-          <div class="flex flex-col gap-2">
-            <label class="text-caption font-medium text-[#666666]">16:9 主題封面圖</label>
-            <div class="flex flex-col sm:flex-row items-center gap-4 p-3 bg-white border border-[#E5E5E5] rounded-[8px]">
-              <div class="w-full sm:w-48 h-28 bg-[#F0F0F0] border border-[#E5E5E5] rounded flex items-center justify-center overflow-hidden">
-                <img id="preview-cover" src="" alt="封面配圖" class="hidden w-full h-full object-cover">
-                <span id="previewCoverPlaceholder" class="text-caption text-[#888888]">尚未產出封面</span>
-              </div>
-              <div class="flex-1 flex flex-col gap-2 w-full">
-                <input type="text" id="inputCoverUrl" class="form-input text-[12px]" placeholder="封面圖片 URL 連結">
-                <div class="flex items-center gap-2">
-                  <button id="btnUpdateCoverUrl" class="btn-secondary h-8 px-3 text-[12px]">更新圖片連結</button>
-                  <label class="btn-secondary h-8 px-3 text-[12px] cursor-pointer">
-                    <span>上傳新封面</span>
-                    <input type="file" id="inputFileCover" accept="image/*" class="hidden">
-                  </label>
-                </div>
-              </div>
-            </div>
-          </div>
-
-          <!-- 編輯工具列與 Emoji 清除器 -->
-          <div class="flex flex-wrap items-center justify-between gap-2 p-2 bg-white border border-[#E5E5E5] rounded-[8px]">
-            <div class="flex items-center gap-1">
-              <button id="toolBold" class="btn-secondary h-7 px-2 text-[12px] font-bold" title="粗體">B</button>
-              <button id="toolQuote" class="btn-secondary h-7 px-2 text-[12px]" title="引用">“ ”</button>
-              <button id="toolHr" class="btn-secondary h-7 px-2 text-[12px]" title="分隔線">—</button>
-              <button id="toolCleanEmoji" class="btn-secondary h-7 px-2 text-[12px]" title="依政策一鍵清除 Emoji">淨化 Emoji</button>
-            </div>
-            <div class="flex items-center gap-3">
-              <span id="emojiWarningBadge" class="hidden text-[12px] text-red-500 font-medium">偵測到 Emoji</span>
-              <span class="text-caption text-[#888888]" id="wordCountDisplay">0 字</span>
-            </div>
-          </div>
-
-          <!-- 正式文章編輯容器 -->
-          <div class="flex flex-col gap-1.5">
-            <div id="edit-content" class="editor-container" contenteditable="true" placeholder="點選「生成正式長文與配圖」由 AI 自動排版輸出..."></div>
-          </div>
-
-          <!-- 100 分量化評分表卡片 -->
-          <div id="score-card" class="hidden p-4 bg-white border border-[#E5E5E5] rounded-[8px]">
-            <span class="text-caption font-medium text-[#666666] block mb-2">100 分量化診斷評分表：</span>
-            <div id="scoreCardContent" class="text-[13px] leading-relaxed text-[#111111]"></div>
-          </div>
-
-          <!-- 文末延伸閱讀清單設定 (Step 17) -->
-          <div class="flex flex-col gap-2 p-4 bg-white border border-[#E5E5E5] rounded-[8px]">
-            <div class="flex items-center justify-between">
-              <span class="text-caption font-medium text-[#666666]">文末延伸閱讀推薦清單 (1～3 篇)</span>
-              <button id="btnAddRecommendation" class="btn-secondary h-7 px-2 text-[12px]">＋ 新增推薦文章</button>
-            </div>
-            <div id="recommendationsContainer" class="flex flex-col gap-2 mt-1"></div>
-          </div>
-
+        <div class="waveform-container" id="waveform-visualizer">
+          <div class="waveform-bar"></div>
+          <div class="waveform-bar"></div>
+          <div class="waveform-bar"></div>
+          <div class="waveform-bar"></div>
+          <div class="waveform-bar"></div>
+          <div class="waveform-bar"></div>
+          <div class="waveform-bar"></div>
+          <div class="waveform-bar"></div>
+          <div class="waveform-bar"></div>
+          <div class="waveform-bar"></div>
+          <div class="waveform-bar"></div>
+          <div class="waveform-bar"></div>
         </div>
 
-      </section>
+        <div class="chunk-info" id="chunk-info-text">目前尚未開始錄音</div>
 
-    </div>
-  </main>
-
-  <!-- 底部固定操作列 -->
-  <aside class="fixed bottom-0 left-0 right-0 h-[72px] bg-white border-t border-[#E5E5E5] z-40 px-6 flex items-center justify-between">
-    <div class="flex items-center gap-4">
-      <div class="flex items-center gap-2 text-caption text-[#666666]">
-        <span>錄音進度：</span>
-        <strong class="font-mono text-[#111111]" id="bottomTimer">00:00</strong>
+        <div class="recorder-btn-group">
+          <button class="btn btn-primary" id="btn-start-record" onclick="startRecording()">
+            <i data-lucide="play"></i> 開始錄音
+          </button>
+          <button class="btn btn-secondary btn-disabled" id="btn-pause-record" onclick="togglePauseRecording()">
+            <i data-lucide="pause" id="icon-pause-record"></i> <span id="text-pause-record">暫停錄音</span>
+          </button>
+          <button class="btn btn-danger btn-disabled" id="btn-stop-record" onclick="stopRecording()">
+            <i data-lucide="square"></i> 停止錄音並生成提案
+          </button>
+        </div>
       </div>
-      <span class="text-[#E5E5E5]">|</span>
-      <div class="text-caption text-[#666666] truncate max-w-[280px] md:max-w-[480px]">
-        <span>當前選題：</span>
-        <span class="text-[#111111] font-medium" id="bottomCurrentTitle">尚未選定</span>
+
+      <div>
+        <span class="form-label">已成功上傳之切片音檔清單：</span>
+        <div class="audio-chunks-list" id="audio-chunks-container">
+          <span style="color: var(--text-muted); font-size: 13px;">暫無切片</span>
+        </div>
       </div>
-    </div>
+    </section>
 
-    <div class="flex items-center gap-3">
-      <button id="btnBottomPublish" class="btn-primary h-10 px-5">
-        <i data-feather="upload-cloud" class="w-4 h-4"></i>
-        <span>一鍵發布至 GitHub</span>
-      </button>
-    </div>
-  </aside>
+    <!-- 視圖 2: Gemini 階段一提案選題 (20組提案單選) (Step 15 & Step 17) -->
+    <section class="panel-section" id="panel-step2">
+      <h2 class="panel-section-title">
+        <i data-lucide="sparkles"></i> AI 階段一：陳修平 7x11 爆款矩陣策略提案 (請單選一組)
+      </h2>
+      
+      <div class="proposals-grid" id="proposals-container">
+        <div style="text-align: center; padding: 40px; color: var(--text-muted);">
+          請先完成錄音並點選停止，或手動點選「重新產生提案」。
+        </div>
+      </div>
 
-  <!-- 全域 Toast 容器 -->
-  <div id="toast-container"></div>
-
-  <!-- 全域通用 Modal -->
-  <div id="global-modal">
-    <div class="modal-box">
-      <div class="flex items-center justify-between border-b border-[#E5E5E5] pb-3 mb-4">
-        <h2 id="modalTitle" class="text-[16px] font-semibold">確認動作</h2>
-        <button id="btnModalClose" class="text-[#888888] hover:text-[#111111]">
-          <i data-feather="x" class="w-4 h-4"></i>
+      <div class="action-bar">
+        <button class="btn btn-secondary" onclick="requestProposalsFromAudio()">
+          <i data-lucide="refresh-cw"></i> 重新產生提案
+        </button>
+        <button class="btn btn-primary btn-disabled" id="btn-generate-article" onclick="generateFullArticleAction()">
+          <i data-lucide="arrow-right"></i> 確認選題並撰寫全文
         </button>
       </div>
-      <div id="modalBody" class="text-[14px] text-[#666666] leading-relaxed mb-6"></div>
-      <div class="flex items-center justify-end gap-3" id="modalActions">
-        <button id="btnModalCancel" class="btn-secondary h-9 px-4 text-[13px]">取消</button>
-        <button id="btnModalConfirm" class="btn-primary h-9 px-4 text-[13px]">確定</button>
+    </section>
+
+    <!-- 視圖 3: 階段二正式文章編輯與極致呼吸感審閱 (Step 15 & Step 17) -->
+    <section class="panel-section" id="panel-step3">
+      <h2 class="panel-section-title">
+        <i data-lucide="edit-3"></i> AI 階段二：正式文章編輯與呼吸感審閱
+      </h2>
+
+      <div class="form-group">
+        <label class="form-label">文章正式標題 (嚴禁 Emoji)：</label>
+        <input type="text" class="input-field" id="post-title-input" placeholder="請輸入文章標題" oninput="handleTitleInput(this.value)">
+      </div>
+
+      <div class="form-group">
+        <label class="form-label">Hook 開頭吸引句 (前 100 字核心痛點直擊)：</label>
+        <input type="text" class="input-field" id="post-hook-input" placeholder="前 100 字強反差開頭" oninput="handleHookInput(this.value)">
+      </div>
+
+      <div class="form-group">
+        <label class="form-label">極致呼吸感內文即時預覽：</label>
+        <div class="breathing-preview" id="post-preview-container">
+          <p>尚未生成文章內文。</p>
+        </div>
+      </div>
+
+      <div class="form-group">
+        <label class="form-label">完整 HTML 原始碼即時編輯：</label>
+        <textarea class="textarea-field" id="post-content-html-input" oninput="handleHtmlInput(this.value)"></textarea>
+        <div class="form-hint" id="post-wordcount-hint">目前純文字數：0 字 (需滿 800 字始得發布)</div>
+      </div>
+
+      <div class="form-group">
+        <label class="form-label">100 分制診斷評分：</label>
+        <input type="number" class="input-field" id="post-diagnostic-score-input" value="95" style="max-width: 140px;" oninput="handleScoreInput(this.value)">
+      </div>
+
+      <div class="action-bar">
+        <button class="btn btn-secondary" onclick="ViewSwitcher.navigate('proposals')">
+          <i data-lucide="arrow-left"></i> 返回選題
+        </button>
+        <button class="btn btn-primary" onclick="validateAndGoPublish()">
+          <i data-lucide="arrow-right"></i> 審查通過，前往發布
+        </button>
+      </div>
+    </section>
+
+    <!-- 視圖 4: 一鍵發布至 GitHub 倉庫根目錄 (Step 16) -->
+    <section class="panel-section" id="panel-step4">
+      <h2 class="panel-section-title">
+        <i data-lucide="upload-cloud"></i> 發布確認中樞
+      </h2>
+      
+      <p style="margin-bottom: 16px; color: var(--text-secondary); line-height: 1.8;">
+        點選確認發布後，系統將依序執行下列自動化操作：<br>
+        1. 在 GitHub 倉庫根目錄建立實體 <code>post_時間戳.html</code> 檔案。<br>
+        2. 更新倉庫根目錄之 <code>posts.json</code> 文章全域索引。<br>
+        3. 同步寫入 Google 試算表 <code>【文章庫_發布總表】</code> 並初始化成效數據。<br>
+        4. 全程符合嚴格零 Emoji 與黃山料式排版呼吸感規範。
+      </p>
+
+      <div class="action-bar">
+        <button class="btn btn-secondary" onclick="ViewSwitcher.navigate('editor')">
+          <i data-lucide="arrow-left"></i> 返回修改
+        </button>
+        <button class="btn btn-primary" id="btn-publish-github" onclick="publishToGitHubAction()">
+          <i data-lucide="check-circle-2"></i> 確認並一鍵發布至 GitHub
+        </button>
+      </div>
+    </section>
+  </div>
+
+  <!-- 底部固定導覽列 Bottom Nav -->
+  <nav class="bottom-nav">
+    <button class="bottom-nav-item" id="bnav-blog" onclick="ViewSwitcher.navigate('blog')">
+      <i data-lucide="book-open" style="width: 18px; height: 18px;"></i>
+      <span>文章首頁</span>
+    </button>
+    <button class="bottom-nav-item active" id="bnav-record" onclick="ViewSwitcher.navigate('record')">
+      <i data-lucide="mic" style="width: 18px; height: 18px;"></i>
+      <span>錄音切片</span>
+    </button>
+    <button class="bottom-nav-item" id="bnav-proposals" onclick="ViewSwitcher.navigate('proposals')">
+      <i data-lucide="list-checks" style="width: 18px; height: 18px;"></i>
+      <span>選題提案</span>
+    </button>
+    <button class="bottom-nav-item" id="bnav-editor" onclick="ViewSwitcher.navigate('editor')">
+      <i data-lucide="file-text" style="width: 18px; height: 18px;"></i>
+      <span>文章編輯</span>
+    </button>
+    <button class="bottom-nav-item" id="bnav-publish" onclick="ViewSwitcher.navigate('publish')">
+      <i data-lucide="send" style="width: 18px; height: 18px;"></i>
+      <span>一鍵發布</span>
+    </button>
+  </nav>
+
+  <!-- 全域 Modal 對話框 -->
+  <div class="modal-backdrop" id="global-modal-backdrop">
+    <div class="modal-dialog">
+      <div class="modal-header">
+        <h3 class="modal-title" id="modal-title-text">提示訊息</h3>
+        <button onclick="ModalController.close()" style="background: none; border: none; cursor: pointer; color: var(--text-secondary);">
+          <i data-lucide="x" style="width: 18px; height: 18px;"></i>
+        </button>
+      </div>
+      <div class="modal-body" id="modal-body-text">確認執行此動作嗎？</div>
+      <div class="modal-footer">
+        <button class="btn btn-secondary btn-sm" id="modal-btn-cancel" onclick="ModalController.close()">取消</button>
+        <button class="btn btn-primary btn-sm" id="modal-btn-confirm">確定</button>
       </div>
     </div>
   </div>
 
-  <!-- ========================================================================
-       JavaScript 全端邏輯引擎 (Step 13 ~ Step 20 完整封裝)
-       ======================================================================== -->
+  <!-- 全域 Toast 容器 -->
+  <div class="toast-container" id="toast-container"></div>
+
   <script>
-    const GAS_WEB_URL = "https://script.google.com/macros/s/AKfycbzCW0-mBhRMn3GZPyhxDDGozQgHazJ2qSBUZZG2lhK-dt7g_jTy8RMGx8v7auSwVKmzXw/exec";
-
-    // ========================================================================
-    // 1. IndexedDB 離線切片儲存器 (Step 19)
-    // ========================================================================
-    const OfflineStorage = {
-      db: null,
-      async init() {
-        return new Promise((resolve) => {
-          const req = indexedDB.open("growthx_offline_db", 1);
-          req.onupgradeneeded = (e) => {
-            const db = e.target.result;
-            if (!db.objectStoreNames.contains("chunks")) {
-              db.createObjectStore("chunks", { keyPath: "id", autoIncrement: true });
-            }
-          };
-          req.onsuccess = (e) => {
-            this.db = e.target.result;
-            resolve();
-          };
-          req.onerror = () => resolve();
-        });
-      },
-      async saveChunk(data) {
-        if (!this.db) return;
-        return new Promise((resolve) => {
-          const tx = this.db.transaction("chunks", "readwrite");
-          tx.objectStore("chunks").add(data);
-          tx.oncomplete = () => resolve();
-          tx.onerror = () => resolve();
-        });
-      },
-      async getPendingChunks() {
-        if (!this.db) return [];
-        return new Promise((resolve) => {
-          const tx = this.db.transaction("chunks", "readonly");
-          const req = tx.objectStore("chunks").getAll();
-          req.onsuccess = () => resolve(req.result || []);
-          req.onerror = () => resolve([]);
-        });
-      },
-      async clearPendingChunks() {
-        if (!this.db) return;
-        return new Promise((resolve) => {
-          const tx = this.db.transaction("chunks", "readwrite");
-          tx.objectStore("chunks").clear();
-          tx.oncomplete = () => resolve();
-          tx.onerror = () => resolve();
-        });
-      }
-    };
-
-    // ========================================================================
-    // 2. EventHub 事件中心
-    // ========================================================================
+    /**
+     * ==========================================================================
+     * Step 9 & Step 19: EventHub 事件總線與 LocalStorage 狀態管理 (含離線防護佇列)
+     * ==========================================================================
+     */
     const EventHub = {
       events: {},
-      on(name, cb) { (this.events[name] = this.events[name] || []).push(cb); },
-      off(name, cb) { if (this.events[name]) this.events[name] = this.events[name].filter(f => f !== cb); },
-      emit(name, data) {
-        if (this.events[name]) {
-          this.events[name].forEach(f => {
-            try { f(data); } catch(e) { console.error("EventHub error", e); }
-          });
-        }
+      on: function (event, handler) {
+        if (!this.events[event]) this.events[event] = [];
+        this.events[event].push(handler);
+      },
+      off: function (event, handler) {
+        if (!this.events[event]) return;
+        this.events[event] = this.events[event].filter(function (h) { return h !== handler; });
+      },
+      emit: function (event, data) {
+        if (!this.events[event]) return;
+        this.events[event].forEach(function (h) { h(data); });
       }
     };
 
-    // ========================================================================
-    // 3. StateStore 狀態庫
-    // ========================================================================
     const StateStore = {
-      STORAGE_KEY: "GROWTHX_STUDIO_STATE_V2",
+      STORAGE_KEY: "TROY_AI_BLOG_STATE_V3",
       state: {
-        currentEpisodeId: "EP001",
-        audience: "",
-        painPoint: "",
-        keywords: "",
-        recordingStatus: "IDLE",
-        chunkTranscripts: [],
-        selectedStrategy: "",
-        articleDraft: "",
-        coverImageUrl: "",
-        fullAudioUrl: "",
-        scoreDiagnostic: "",
-        recommendedArticles: [
-          { title: "一人公司如何運用 AI 打造自動化獲客引擎", url: "https://growthx.tw/blog/ai-automation-engine" },
-          { title: "Vibe Coding 實踐：零基礎打造企業內部系統", url: "https://growthx.tw/blog/vibe-coding-guide" }
-        ],
-        activeStep: 1
+        sessionId: "session_" + new Date().getTime(),
+        audioChunksList: [],
+        proposalsList: [],
+        selectedProposal: null,
+        currentPost: {
+          id: "",
+          title: "",
+          hook: "",
+          content_html: "",
+          diagnostic_score: 95
+        },
+        allPosts: [],
+        activeReadingPost: null,
+        filterKeyword: "",
+        sortOption: "newest",
+        currentUser: null,
+        offlineQueue: []
       },
-      init() {
+
+      init: function () {
+        const saved = localStorage.getItem(this.STORAGE_KEY);
+        if (saved) {
+          try {
+            const parsed = JSON.parse(saved);
+            this.state = Object.assign(this.state, parsed);
+            EventHub.emit("state:restored", this.state);
+          } catch (e) {
+            console.error("狀態還原異常", e);
+          }
+        }
+      },
+
+      getState: function (key) {
+        return key ? this.state[key] : this.state;
+      },
+
+      setState: function (key, value) {
+        this.state[key] = value;
+        this.persist();
+        EventHub.emit("state:changed:" + key, value);
+        EventHub.emit("state:changed", this.state);
+      },
+
+      updatePostField: function (field, value) {
+        this.state.currentPost[field] = value;
+        this.persist();
+        EventHub.emit("post:changed", this.state.currentPost);
+      },
+
+      persist: function () {
         try {
-          const c = localStorage.getItem(this.STORAGE_KEY);
-          if (c) this.state = { ...this.state, ...JSON.parse(c) };
-        } catch(e) {}
+          localStorage.setItem(this.STORAGE_KEY, JSON.stringify(this.state));
+          const dot = document.getElementById("network-dot");
+          if (dot && navigator.onLine) {
+            dot.classList.add("syncing");
+            setTimeout(function () { dot.classList.remove("syncing"); }, 350);
+          }
+        } catch (e) {}
       },
-      get(k) { return this.state[k]; },
-      set(k, v) {
-        this.state[k] = v;
-        try { localStorage.setItem(this.STORAGE_KEY, JSON.stringify(this.state)); } catch(e) {}
-        EventHub.emit("STATE_CHANGED", { key: k, value: v });
+
+      clear: function () {
+        localStorage.removeItem(this.STORAGE_KEY);
+        this.state = {
+          sessionId: "session_" + new Date().getTime(),
+          audioChunksList: [],
+          proposalsList: [],
+          selectedProposal: null,
+          currentPost: {
+            id: "",
+            title: "",
+            hook: "",
+            content_html: "",
+            diagnostic_score: 95
+          },
+          allPosts: this.state.allPosts || [],
+          activeReadingPost: null,
+          filterKeyword: "",
+          sortOption: "newest",
+          currentUser: this.state.currentUser || null,
+          offlineQueue: []
+        };
+        EventHub.emit("state:cleared", this.state);
       }
     };
 
-    StateStore.init();
-
-    // ========================================================================
-    // 4. RequestQueue 與 GAS 通訊
-    // ========================================================================
-    class RequestQueueManager {
-      constructor() {
-        this.queue = [];
-        this.isProcessing = false;
-      }
-      enqueue(action, payload, retryCount = 0) {
-        return new Promise((resolve, reject) => {
-          this.queue.push({ action, payload, retryCount, resolve, reject });
-          this.processNext();
+    /**
+     * ==========================================================================
+     * Step 19: 離線防護機制 OfflineQueue (監聽 online/offline 並於復原後自動重發)
+     * ==========================================================================
+     */
+    const OfflineQueue = {
+      init: function () {
+        window.addEventListener("online", function () {
+          const dot = document.getElementById("network-dot");
+          const text = document.getElementById("network-text");
+          if (dot) dot.classList.remove("offline");
+          if (text) text.textContent = "連線已恢復";
+          ToastController.show("網路連線已恢復，正在同步離線操作...", "success");
+          OfflineQueue.flush();
         });
+
+        window.addEventListener("offline", function () {
+          const dot = document.getElementById("network-dot");
+          const text = document.getElementById("network-text");
+          if (dot) dot.classList.add("offline");
+          if (text) text.textContent = "處於離線狀態";
+          ToastController.show("網路已中斷，操作將暫存至本機佇列", "info");
+        });
+      },
+
+      push: function (task) {
+        const q = StateStore.getState("offlineQueue") || [];
+        q.push(task);
+        StateStore.setState("offlineQueue", q);
+      },
+
+      flush: async function () {
+        const q = StateStore.getState("offlineQueue") || [];
+        if (q.length === 0) return;
+
+        ToastController.show("正在同步 " + q.length + " 筆離線操作...", "info");
+        while (q.length > 0) {
+          const item = q.shift();
+          try {
+            await callBackendApi(item.action, item.payload);
+          } catch (e) {
+            console.error("離線同步任務失敗", e);
+          }
+        }
+        StateStore.setState("offlineQueue", []);
+        ToastController.show("離線數據已全數同步完成", "success");
       }
-      async processNext() {
+    };
+
+    /**
+     * ==========================================================================
+     * Step 10: 前端 Optimistic UI 核心引擎與 API 請求佇列
+     * ==========================================================================
+     */
+    const RequestQueue = {
+      queue: [],
+      isProcessing: false,
+
+      enqueue: async function (fn) {
+        return new Promise(function (resolve, reject) {
+          RequestQueue.queue.push({ fn: fn, resolve: resolve, reject: reject });
+          RequestQueue.process();
+        });
+      },
+
+      process: async function () {
         if (this.isProcessing || this.queue.length === 0) return;
         this.isProcessing = true;
         const task = this.queue.shift();
 
         try {
-          const res = await this.executeRequest(task.action, task.payload);
-          task.resolve(res);
+          const result = await task.fn();
+          task.resolve(result);
         } catch (err) {
-          if (task.retryCount < 3 && navigator.onLine) {
-            const delay = Math.pow(2, task.retryCount) * 1000;
-            setTimeout(() => {
-              this.queue.push({ ...task, retryCount: task.retryCount + 1 });
-              this.isProcessing = false;
-              this.processNext();
-            }, delay);
-            return;
-          } else {
-            task.reject(err);
-          }
+          task.reject(err);
+        } finally {
+          this.isProcessing = false;
+          RequestQueue.process();
         }
-        this.isProcessing = false;
-        this.processNext();
       }
-      executeRequest(action, payload) {
-        return new Promise((resolve, reject) => {
-          if (typeof google !== "undefined" && google.script && google.script.run) {
-            google.script.run
-              .withSuccessHandler(res => {
-                if (res && res.status === "success") {
-                  resolve(res.data); // 嚴格解包
-                } else {
-                  reject(new Error(res ? res.message : "GAS 呼叫失敗"));
-                }
-              })
-              .withFailureHandler(err => reject(err))
-              .dispatchAction(action, payload);
-          } else {
-            fetch(GAS_WEB_URL, {
-              method: "POST",
-              headers: { "Content-Type": "application/json" },
-              body: JSON.stringify({ action, ...(payload || {}) })
-            })
-            .then(r => r.json())
-            .then(j => {
-              if (j && j.status === "success") resolve(j.data); // 嚴格解包
-              else reject(new Error(j ? j.message : "網路通訊異常"));
-            })
-            .catch(e => reject(e));
+    };
+
+    /**
+     * ==========================================================================
+     * Step 11: ViewSwitcher 視圖切換器 (支援 blog, article, record, proposals, editor, publish)
+     * ==========================================================================
+     */
+    const ViewSwitcher = {
+      currentRoute: "record",
+      routes: {
+        blog: { step: 0, panelId: "panel-step-blog", pillId: "pill-step-blog", bnavId: "bnav-blog" },
+        article: { step: 0.5, panelId: "panel-step-article", pillId: null, bnavId: null },
+        record: { step: 1, panelId: "panel-step1", pillId: "pill-step1", bnavId: "bnav-record" },
+        proposals: { step: 2, panelId: "panel-step2", pillId: "pill-step2", bnavId: "bnav-proposals" },
+        editor: { step: 3, panelId: "panel-step3", pillId: "pill-step3", bnavId: "bnav-editor" },
+        publish: { step: 4, panelId: "panel-step4", pillId: "pill-step4", bnavId: "bnav-publish" }
+      },
+
+      init: function () {
+        window.addEventListener("hashchange", function () {
+          const rawHash = window.location.hash.replace("#", "") || "record";
+          const parts = rawHash.split("/");
+          const routeName = parts[0];
+          const routeParam = parts[1] || null;
+          ViewSwitcher.render(routeName, routeParam);
+        });
+
+        const rawHash = window.location.hash.replace("#", "") || "record";
+        const parts = rawHash.split("/");
+        this.render(parts[0], parts[1] || null);
+      },
+
+      navigate: function (routeName, param) {
+        if (!this.routes[routeName]) routeName = "record";
+        window.location.hash = param ? (routeName + "/" + param) : routeName;
+      },
+
+      render: function (routeName, param) {
+        if (!this.routes[routeName]) routeName = "record";
+        this.currentRoute = routeName;
+
+        Object.keys(this.routes).forEach(function (rKey) {
+          const r = ViewSwitcher.routes[rKey];
+          const panel = document.getElementById(r.panelId);
+          const pill = r.pillId ? document.getElementById(r.pillId) : null;
+          const bnav = r.bnavId ? document.getElementById(r.bnavId) : null;
+
+          if (panel) {
+            if (rKey === routeName) {
+              panel.classList.add("active");
+            } else {
+              panel.classList.remove("active");
+            }
+          }
+          if (pill) {
+            if (rKey === routeName) {
+              pill.classList.add("active");
+            } else {
+              pill.classList.remove("active");
+            }
+          }
+          if (bnav) {
+            if (rKey === routeName) {
+              bnav.classList.add("active");
+            } else {
+              bnav.classList.remove("active");
+            }
           }
         });
+
+        const switchBtn = document.getElementById("btn-header-switch-view");
+        if (switchBtn) {
+          if (routeName === "blog" || routeName === "article") {
+            switchBtn.innerHTML = '<i data-lucide="mic" style="width: 14px; height: 14px;"></i> 返回錄音後台';
+          } else {
+            switchBtn.innerHTML = '<i data-lucide="layout-grid" style="width: 14px; height: 14px;"></i> 前台文章列表';
+          }
+        }
+
+        if (routeName === "blog") {
+          loadPostsData();
+        } else if (routeName === "article" && param) {
+          loadSingleArticle(param);
+        }
+
+        window.scrollTo({ top: 0, behavior: "smooth" });
+        lucide.createIcons();
+      }
+    };
+
+    function toggleFrontBackView() {
+      if (ViewSwitcher.currentRoute === "blog" || ViewSwitcher.currentRoute === "article") {
+        ViewSwitcher.navigate("record");
+      } else {
+        ViewSwitcher.navigate("blog");
       }
     }
 
-    const RequestQueue = new RequestQueueManager();
-    function sendGasRequest(action, payload) { return RequestQueue.enqueue(action, payload); }
+    /**
+     * ==========================================================================
+     * Step 12: 全域 Modal 對話框與 ToastController
+     * ==========================================================================
+     */
+    const ModalController = {
+      backdrop: null,
+      titleElem: null,
+      bodyElem: null,
+      confirmBtn: null,
+      onConfirmCallback: null,
 
-    // ========================================================================
-    // 5. Toast 與 Modal 控制工具
-    // ========================================================================
-    function showToast(msg, type = "info") {
-      const c = document.getElementById("toast-container");
-      const el = document.createElement("div");
-      el.className = "toast-item" + (type === "error" ? " toast-error" : "");
-      const icon = type === "success" ? "check-circle" : (type === "error" ? "alert-circle" : "info");
-      el.innerHTML = `<i data-feather="${icon}" class="w-4 h-4"></i><span>${msg}</span>`;
-      c.appendChild(el);
-      feather.replace();
-      setTimeout(() => {
-        el.style.opacity = "0";
-        el.style.transform = "translateX(30px)";
-        setTimeout(() => el.remove(), 300);
-      }, 3000);
+      init: function () {
+        this.backdrop = document.getElementById("global-modal-backdrop");
+        this.titleElem = document.getElementById("modal-title-text");
+        this.bodyElem = document.getElementById("modal-body-text");
+        this.confirmBtn = document.getElementById("modal-btn-confirm");
+
+        this.confirmBtn.onclick = function () {
+          if (ModalController.onConfirmCallback) ModalController.onConfirmCallback();
+          ModalController.close();
+        };
+
+        window.addEventListener("keydown", function (e) {
+          if (e.key === "Escape") ModalController.close();
+        });
+      },
+
+      open: function (options) {
+        this.titleElem.textContent = options.title || "提示";
+        this.bodyElem.innerHTML = options.content || "";
+        this.onConfirmCallback = options.onConfirm || null;
+        this.backdrop.classList.add("open");
+        lucide.createIcons();
+      },
+
+      close: function () {
+        this.backdrop.classList.remove("open");
+        this.onConfirmCallback = null;
+      }
+    };
+
+    const ToastController = {
+      container: null,
+
+      init: function () {
+        this.container = document.getElementById("toast-container");
+      },
+
+      show: function (message, type, duration) {
+        if (!this.container) this.init();
+        const toast = document.createElement("div");
+        toast.className = "toast-item" + (type ? " " + type : "");
+        
+        const textSpan = document.createElement("span");
+        textSpan.textContent = message;
+
+        const closeBtn = document.createElement("button");
+        closeBtn.innerHTML = "&times;";
+        closeBtn.style.cssText = "background:none;border:none;color:inherit;cursor:pointer;font-size:16px;";
+        closeBtn.onclick = function () { toast.remove(); };
+
+        toast.appendChild(textSpan);
+        toast.appendChild(closeBtn);
+        this.container.appendChild(toast);
+
+        setTimeout(function () {
+          toast.style.opacity = "0";
+          toast.style.transition = "opacity 0.3s ease";
+          setTimeout(function () { toast.remove(); }, 300);
+        }, duration || 3500);
+      }
+    };
+
+    /**
+     * ==========================================================================
+     * 前後端雙棲 API 呼叫封裝 (GAS Web App / GitHub Pages)
+     * ==========================================================================
+     */
+    const GAS_WEB_URL = "https://script.google.com/macros/s/AKfycbzCW0-mBhRMn3GZPyhxDDGozQgHazJ2qSBUZZG2lhK-dt7g_jTy8RMGx8v7auSwVKmzXw/exec";
+
+    async function callBackendApi(action, payload) {
+      const requestData = Object.assign({ action: action }, payload || {});
+
+      if (!navigator.onLine) {
+        OfflineQueue.push({ action: action, payload: payload });
+        return { status: "offline", message: "已暫存至離線佇列" };
+      }
+
+      if (typeof google !== "undefined" && google.script && google.script.run) {
+        return new Promise(function (resolve, reject) {
+          google.script.run
+            .withSuccessHandler(function (response) {
+              try {
+                const res = typeof response === "string" ? JSON.parse(response) : response;
+                resolve(res);
+              } catch (e) {
+                resolve(response);
+              }
+            })
+            .withFailureHandler(function (error) {
+              reject(error);
+            })
+            .doPost({ postData: { contents: JSON.stringify(requestData) } });
+        });
+      }
+
+      const response = await fetch(GAS_WEB_URL, {
+        method: "POST",
+        headers: { "Content-Type": "text/plain;charset=utf-8" },
+        body: JSON.stringify(requestData)
+      });
+
+      const res = await response.json();
+      return res;
     }
 
-    let modalConfirmCallback = null;
-    function openModal({ title, content, onConfirm, showCancel = true }) {
-      document.getElementById("modalTitle").innerText = title || "確認動作";
-      document.getElementById("modalBody").innerHTML = content || "";
-      document.getElementById("btnModalCancel").style.display = showCancel ? "inline-flex" : "none";
-      modalConfirmCallback = onConfirm;
-      document.getElementById("global-modal").classList.add("is-open");
-      feather.replace();
-    }
-    function closeModal() {
-      document.getElementById("global-modal").classList.remove("is-open");
-      modalConfirmCallback = null;
-    }
-    document.getElementById("btnModalClose").addEventListener("click", closeModal);
-    document.getElementById("btnModalCancel").addEventListener("click", closeModal);
-    document.getElementById("btnModalConfirm").addEventListener("click", () => {
-      if (typeof modalConfirmCallback === "function") modalConfirmCallback();
-      closeModal();
-    });
+    /**
+     * ==========================================================================
+     * Step 18: 無縫切片串流音訊播放器 (SeamlessAudioPlayer) 核心實作
+     * ==========================================================================
+     */
+    const SeamlessAudioPlayer = {
+      audioA: new Audio(),
+      audioB: new Audio(),
+      currentAudio: null,
+      nextAudio: null,
+      chunks: [],
+      currentChunkIndex: 0,
+      isPlaying: false,
+      playbackRate: 1.0,
+      totalDurationSeconds: 0,
+      estimatedChunkDuration: 60, // 每個切片基準 60 秒
+      speeds: [1.0, 1.25, 1.5, 2.0],
 
-    // ========================================================================
-    // 6. 錄音引擎與 60 秒 MediaRecorder 背景打包器 (Step 14, 15)
-    // ========================================================================
-    let mediaRecorder = null;
-    let audioStream = null;
-    let fullAudioChunks = [];
-    let chunkIntervalTimer = null;
-    let recordSecondCounter = 0;
-    let minuteSliceIndex = 1;
+      init: function () {
+        this.currentAudio = this.audioA;
+        this.nextAudio = this.audioB;
+        this.bindEvents(this.audioA);
+        this.bindEvents(this.audioB);
+      },
 
-    function formatTime(secs) {
-      const m = String(Math.floor(secs / 60)).padStart(2, "0");
-      const s = String(secs % 60).padStart(2, "0");
-      return `${m}:${s}`;
+      bindEvents: function (audio) {
+        audio.addEventListener("timeupdate", function () {
+          if (audio === SeamlessAudioPlayer.currentAudio) {
+            SeamlessAudioPlayer.onTimeUpdate();
+          }
+        });
+
+        audio.addEventListener("ended", function () {
+          if (audio === SeamlessAudioPlayer.currentAudio) {
+            SeamlessAudioPlayer.onChunkEnded();
+          }
+        });
+
+        audio.addEventListener("error", function (e) {
+          console.warn("切片播放異常", e);
+        });
+      },
+
+      loadPlaylist: function (chunksList) {
+        this.chunks = chunksList || [];
+        this.currentChunkIndex = 0;
+        this.totalDurationSeconds = this.chunks.length * this.estimatedChunkDuration;
+
+        const durationElem = document.getElementById("player-total-duration");
+        if (durationElem) {
+          durationElem.textContent = this.formatTime(this.totalDurationSeconds);
+        }
+
+        if (this.chunks.length > 0) {
+          this.prepareChunk(0, this.currentAudio);
+          if (this.chunks.length > 1) {
+            this.prepareChunk(1, this.nextAudio);
+          }
+          document.getElementById("player-chunk-status").textContent = "共 " + this.chunks.length + " 段切片 (待命播放)";
+        } else {
+          document.getElementById("player-chunk-status").textContent = "本篇文章無音訊切片";
+        }
+      },
+
+      prepareChunk: function (index, audioObj) {
+        if (!this.chunks[index]) return;
+        const chunk = this.chunks[index];
+        const streamUrl = chunk.stream_url || ("https://drive.google.com/uc?export=download&id=" + chunk.file_id);
+        audioObj.src = streamUrl;
+        audioObj.playbackRate = this.playbackRate;
+        audioObj.preload = "auto";
+      },
+
+      togglePlay: function () {
+        if (this.chunks.length === 0) {
+          ToastController.show("此文章尚未上傳原聲音檔切片", "info");
+          return;
+        }
+
+        if (this.isPlaying) {
+          this.pause();
+        } else {
+          this.play();
+        }
+      },
+
+      play: function () {
+        if (this.currentAudio) {
+          this.currentAudio.playbackRate = this.playbackRate;
+          this.currentAudio.play().then(function () {
+            SeamlessAudioPlayer.isPlaying = true;
+            SeamlessAudioPlayer.updatePlayIcon(true);
+          }).catch(function (e) {
+            ToastController.show("播放受瀏覽器政策限制，請點擊按鈕重試", "info");
+          });
+        }
+      },
+
+      pause: function () {
+        if (this.currentAudio) {
+          this.currentAudio.pause();
+          this.isPlaying = false;
+          this.updatePlayIcon(false);
+        }
+      },
+
+      onTimeUpdate: function () {
+        const curSec = this.currentAudio.currentTime || 0;
+        const totalSec = (this.currentChunkIndex * this.estimatedChunkDuration) + curSec;
+        const percent = this.totalDurationSeconds > 0 ? (totalSec / this.totalDurationSeconds) * 100 : 0;
+
+        const pBar = document.getElementById("player-progress-bar");
+        const pTime = document.getElementById("player-current-time");
+        if (pBar) pBar.style.width = Math.min(100, percent) + "%";
+        if (pTime) pTime.textContent = this.formatTime(totalSec);
+
+        // 監聽完播率指標 (25%, 50%, 75%, 100%) (Step 19)
+        AnalyticsTracker.checkAudioProgress(percent);
+
+        // 當前切片剩餘 3 秒時，預載下一段音訊
+        const remaining = (this.currentAudio.duration || this.estimatedChunkDuration) - curSec;
+        if (remaining <= 3 && (this.currentChunkIndex + 1) < this.chunks.length) {
+          if (!this.nextAudio.src || this.nextAudio.src === "") {
+            this.prepareChunk(this.currentChunkIndex + 1, this.nextAudio);
+          }
+        }
+      },
+
+      onChunkEnded: function () {
+        if ((this.currentChunkIndex + 1) < this.chunks.length) {
+          this.currentChunkIndex++;
+          // 無縫切換音訊物件
+          const temp = this.currentAudio;
+          this.currentAudio = this.nextAudio;
+          this.nextAudio = temp;
+
+          this.currentAudio.playbackRate = this.playbackRate;
+          this.currentAudio.play();
+
+          // 預熱更下一個切片
+          if ((this.currentChunkIndex + 1) < this.chunks.length) {
+            this.prepareChunk(this.currentChunkIndex + 1, this.nextAudio);
+          }
+          document.getElementById("player-chunk-status").textContent = "正在播放第 " + (this.currentChunkIndex + 1) + " / " + this.chunks.length + " 段";
+        } else {
+          this.isPlaying = false;
+          this.updatePlayIcon(false);
+          AnalyticsTracker.checkAudioProgress(100);
+          document.getElementById("player-chunk-status").textContent = "音訊切片已全數播畢";
+        }
+      },
+
+      skip: function (seconds) {
+        if (!this.currentAudio) return;
+        this.currentAudio.currentTime = Math.max(0, this.currentAudio.currentTime + seconds);
+      },
+
+      seek: function (e) {
+        if (this.totalDurationSeconds <= 0) return;
+        const rect = e.currentTarget.getBoundingClientRect();
+        const clickRatio = (e.clientX - rect.left) / rect.width;
+        const targetTotalSec = clickRatio * this.totalDurationSeconds;
+
+        const targetChunkIdx = Math.floor(targetTotalSec / this.estimatedChunkDuration);
+        const secInChunk = targetTotalSec % this.estimatedChunkDuration;
+
+        if (targetChunkIdx === this.currentChunkIndex) {
+          this.currentAudio.currentTime = secInChunk;
+        } else if (targetChunkIdx < this.chunks.length) {
+          this.currentChunkIndex = targetChunkIdx;
+          this.prepareChunk(targetChunkIdx, this.currentAudio);
+          this.currentAudio.currentTime = secInChunk;
+          if (this.isPlaying) this.currentAudio.play();
+        }
+      },
+
+      cycleSpeed: function () {
+        const curIdx = this.speeds.indexOf(this.playbackRate);
+        const nextIdx = (curIdx + 1) % this.speeds.length;
+        this.playbackRate = this.speeds[nextIdx];
+        if (this.currentAudio) this.currentAudio.playbackRate = this.playbackRate;
+        if (this.nextAudio) this.nextAudio.playbackRate = this.playbackRate;
+
+        document.getElementById("player-speed-indicator").textContent = this.playbackRate.toFixed(2) + "x 倍速";
+      },
+
+      updatePlayIcon: function (playing) {
+        const icon = document.getElementById("player-toggle-icon");
+        if (icon) {
+          icon.setAttribute("data-lucide", playing ? "pause" : "play");
+          lucide.createIcons();
+        }
+      },
+
+      formatTime: function (seconds) {
+        const s = Math.floor(seconds || 0);
+        const mins = String(Math.floor(s / 60)).padStart(2, "0");
+        const secs = String(s % 60).padStart(2, "0");
+        return mins + ":" + secs;
+      }
+    };
+
+    /**
+     * ==========================================================================
+     * Step 19: 成效數據追蹤埋點監聽器 (AnalyticsTracker)
+     * ==========================================================================
+     */
+    const AnalyticsTracker = {
+      currentPostId: null,
+      hasTrackedPV: false,
+      hasTrackedReadComplete: false,
+      progressFlags: { p25: false, p50: false, p75: false, p100: false },
+
+      initForPost: function (postId) {
+        this.currentPostId = postId;
+        this.hasTrackedPV = false;
+        this.hasTrackedReadComplete = false;
+        this.progressFlags = { p25: false, p50: false, p75: false, p100: false };
+
+        // 1. 觸發點閱數 PV
+        this.track("views");
+
+        // 2. 監聽滾動完讀率 (Scroll Completion 85%)
+        this.setupScrollObserver();
+      },
+
+      track: async function (metricKey) {
+        if (!this.currentPostId) return;
+        try {
+          await callBackendApi("trackEvent", {
+            postId: this.currentPostId,
+            metricKey: metricKey
+          });
+        } catch (e) {
+          console.warn("埋點發送異常", e);
+        }
+      },
+
+      setupScrollObserver: function () {
+        const target = document.getElementById("cta-anchor-point") || document.getElementById("article-view-content");
+        if (!target) return;
+
+        const observer = new IntersectionObserver(function (entries) {
+          entries.forEach(function (entry) {
+            if (entry.isIntersecting && !AnalyticsTracker.hasTrackedReadComplete) {
+              AnalyticsTracker.hasTrackedReadComplete = true;
+              AnalyticsTracker.track("reads_completed");
+              observer.disconnect();
+            }
+          });
+        }, { threshold: 0.85 });
+
+        observer.observe(target);
+      },
+
+      checkAudioProgress: function (percent) {
+        if (percent >= 25 && !this.progressFlags.p25) {
+          this.progressFlags.p25 = true;
+          this.track("audio_25");
+        }
+        if (percent >= 50 && !this.progressFlags.p50) {
+          this.progressFlags.p50 = true;
+          this.track("audio_50");
+        }
+        if (percent >= 75 && !this.progressFlags.p75) {
+          this.progressFlags.p75 = true;
+          this.track("audio_75");
+        }
+        if (percent >= 99 && !this.progressFlags.p100) {
+          this.progressFlags.p100 = true;
+          this.track("audio_100");
+        }
+      }
+    };
+
+    /**
+     * ==========================================================================
+     * Step 19: Google 登入 (GIS) 與讀者留言板互動實作
+     * ==========================================================================
+     */
+    function handleGoogleLoginResponse(response) {
+      if (response && response.credential) {
+        try {
+          // 解碼 JWT Payload
+          const base64Url = response.credential.split(".")[1];
+          const base64 = base64Url.replace(/-/g, "+").replace(/_/g, "/");
+          const jsonPayload = decodeURIComponent(atob(base64).split("").map(function (c) {
+            return "%" + ("00" + c.charCodeAt(0).toString(16)).slice(-2);
+          }).join(""));
+
+          const userProfile = JSON.parse(jsonPayload);
+          StateStore.setState("currentUser", {
+            name: userProfile.name,
+            avatar: userProfile.picture,
+            email: userProfile.email
+          });
+
+          renderUserProfileBadge();
+          ToastController.show("歡迎您，" + userProfile.name + " 創業者！", "success");
+        } catch (e) {
+          console.error("GIS 解碼錯誤", e);
+        }
+      }
     }
+
+    function renderUserProfileBadge() {
+      const user = StateStore.getState("currentUser");
+      const box = document.getElementById("comment-user-info");
+      if (!box) return;
+
+      if (user) {
+        box.innerHTML = 
+          '<div class="user-profile-badge">' +
+            '<img src="' + user.avatar + '" class="user-avatar-img" alt="頭像">' +
+            '<div>' +
+              '<div style="font-weight: 600; font-size: 13px;">' + user.name + '</div>' +
+              '<div style="font-size: 11px; color: var(--text-muted);">Google 已認證創業者</div>' +
+            '</div>' +
+          '</div>';
+      } else {
+        box.innerHTML = '<span style="font-size: 13px; color: var(--text-muted);">尚未登入，將以「訪客創業者」身分留言</span>';
+      }
+    }
+
+    async function submitCommentAction() {
+      const input = document.getElementById("new-comment-input");
+      const content = (input.value || "").trim();
+      const currentPost = StateStore.getState("activeReadingPost");
+
+      if (!currentPost || !currentPost.id) {
+        ToastController.show("無效的文章目標", "error");
+        return;
+      }
+
+      if (!content) {
+        ToastController.show("請先輸入留言內容", "error");
+        return;
+      }
+
+      const user = StateStore.getState("currentUser") || { name: "訪客創業者", avatar: "" };
+      const commentData = {
+        post_id: currentPost.id,
+        user_name: user.name,
+        user_avatar: user.avatar,
+        content: content
+      };
+
+      // 樂觀更新留言 DOM
+      appendSingleCommentToDom({
+        user_name: user.name,
+        user_avatar: user.avatar,
+        content: content,
+        created_at: new Date().toISOString()
+      });
+      input.value = "";
+
+      try {
+        const res = await callBackendApi("addComment", commentData);
+        if (res.status === "success" || res.status === "offline") {
+          ToastController.show("留言發布成功", "success");
+        }
+      } catch (err) {
+        ToastController.show("留言通訊異常: " + err.message, "error");
+      }
+    }
+
+    function appendSingleCommentToDom(c) {
+      const wrap = document.getElementById("comments-list-wrap");
+      const item = document.createElement("div");
+      item.className = "comment-item";
+      const dateStr = new Date(c.created_at).toLocaleString("zh-TW");
+
+      item.innerHTML = 
+        '<div class="comment-meta">' +
+          '<span style="font-weight: 600; color: var(--text-primary);">' + c.user_name + '</span>' +
+          '<span>' + dateStr + '</span>' +
+        '</div>' +
+        '<div class="comment-content">' + c.content + '</div>';
+
+      wrap.prepend(item);
+    }
+
+    async function loadPostComments(postId) {
+      const wrap = document.getElementById("comments-list-wrap");
+      wrap.innerHTML = '<div style="color: var(--text-muted); font-size: 13px;">正在載入讀者討論...</div>';
+
+      try {
+        const res = await callBackendApi("getComments", { postId: postId });
+        if (res.status === "success" && Array.isArray(res.data)) {
+          wrap.innerHTML = "";
+          if (res.data.length === 0) {
+            wrap.innerHTML = '<div style="color: var(--text-muted); font-size: 13px;">目前尚無留言，歡迎成為第一位交流的創業者。</div>';
+            return;
+          }
+          res.data.forEach(function (c) {
+            appendSingleCommentToDom(c);
+          });
+        }
+      } catch (e) {
+        wrap.innerHTML = '<div style="color: var(--text-muted); font-size: 13px;">暫時無法讀取留言記錄。</div>';
+      }
+    }
+
+    /**
+     * ==========================================================================
+     * Step 13 & Step 18: 獨立文章加載與渲染
+     * ==========================================================================
+     */
+    async function loadSingleArticle(postId) {
+      const contentElem = document.getElementById("article-view-content");
+      contentElem.innerHTML = 
+        '<div class="skeleton skeleton-title"></div>' +
+        '<div class="skeleton skeleton-text" style="width: 40%;"></div>' +
+        '<div class="skeleton skeleton-text"></div>' +
+        '<div class="skeleton skeleton-text"></div>';
+
+      try {
+        let post = null;
+        const all = StateStore.getState("allPosts") || [];
+        for (let i = 0; i < all.length; i++) {
+          if (all[i].id === postId) { post = all[i]; break; }
+        }
+
+        if (!post) {
+          const res = await callBackendApi("getPostById", { id: postId });
+          if (res.status === "success" && res.data) post = res.data;
+        }
+
+        if (!post) {
+          contentElem.innerHTML = '<div class="empty-state"><p class="empty-state-title">找不到指定文章</p></div>';
+          return;
+        }
+
+        StateStore.setState("activeReadingPost", post);
+
+        // 渲染文章主體 (黃山料式極致呼吸感)
+        const dateStr = post.created_at ? new Date(post.created_at).toLocaleDateString("zh-TW") : "最新";
+        const score = post.diagnostic_score || 95;
+
+        contentElem.innerHTML = 
+          '<h1>' + post.title + '</h1>' +
+          '<div class="article-meta-bar">' +
+            '<div>' +
+              '<span>作者：特洛伊 ｜ 創業者的時間貧窮解放師</span><br>' +
+              '<span>刊登時間：' + dateStr + '</span>' +
+            '</div>' +
+            '<div class="badge" style="background-color: var(--text-primary); color: var(--bg-main); font-weight: 600;">' +
+              '100分評測：' + score + ' 分' +
+            '</div>' +
+          '</div>' +
+          '<div class="article-breathing-text">' +
+            post.content_html +
+          '</div>' +
+          '<div id="cta-anchor-point"></div>' +
+          renderDiagnosticScoreCard(score) +
+          '<div class="interaction-bar">' +
+            '<button class="heart-btn" id="post-heart-btn" onclick="togglePostHeart()">' +
+              '<i data-lucide="heart" id="heart-icon" style="width: 16px; height: 16px;"></i>' +
+              '<span>給予共鳴支持 (<span id="heart-counter">0</span>)</span>' +
+            '</button>' +
+            '<a href="https://rubybranddesign-cloud.github.io/e-line-card-share/troyAIempower/" target="_blank" class="btn btn-primary btn-sm">' +
+              '<i data-lucide="calendar" style="width: 13px; height: 13px;"></i> 預約時間盤點一對一諮詢' +
+            '</a>' +
+          '</div>';
+
+        // 啟動無縫音訊播放器
+        SeamlessAudioPlayer.loadPlaylist(post.audio_files || []);
+
+        // 啟動埋點追蹤
+        AnalyticsTracker.initForPost(post.id);
+
+        // 讀取互動數據
+        loadPostAnalytics(post.id);
+
+        // 載入留言板
+        loadPostComments(post.id);
+
+        renderUserProfileBadge();
+        lucide.createIcons();
+      } catch (err) {
+        contentElem.innerHTML = '<div class="empty-state"><p class="empty-state-title">文章讀取失敗：' + err.message + '</p></div>';
+      }
+    }
+
+    function renderDiagnosticScoreCard(score) {
+      return '' +
+        '<div class="diagnostic-card">' +
+          '<div class="diagnostic-header">' +
+            '<span style="font-weight: 700; font-size: 15px;">自媒體文章 100 分制診斷分析報告</span>' +
+            '<span class="diagnostic-score-badge">' + score + ' / 100</span>' +
+          '</div>' +
+          '<div class="diagnostic-grid">' +
+            '<div class="diagnostic-item">' +
+              '<div class="diagnostic-item-title">選題爆款力 (25%)</div>' +
+              '<div class="diagnostic-item-val">24 分 (直擊痛點)</div>' +
+            '</div>' +
+            '<div class="diagnostic-item">' +
+              '<div class="diagnostic-item-title">前言懸念度 (25%)</div>' +
+              '<div class="diagnostic-item-val">23 分 (黃金Hook)</div>' +
+            '</div>' +
+            '<div class="diagnostic-item">' +
+              '<div class="diagnostic-item-title">架構呼吸感 (25%)</div>' +
+              '<div class="diagnostic-item-val">25 分 (段小於三行)</div>' +
+            '</div>' +
+            '<div class="diagnostic-item">' +
+              '<div class="diagnostic-item-title">商業導流動機 (25%)</div>' +
+              '<div class="diagnostic-item-val">23 分 (品牌宣言)</div>' +
+            '</div>' +
+          '</div>' +
+        '</div>';
+    }
+
+    async function loadPostAnalytics(postId) {
+      try {
+        const res = await callBackendApi("getAnalytics", { postId: postId });
+        if (res.status === "success" && res.data) {
+          const counter = document.getElementById("heart-counter");
+          if (counter) counter.textContent = res.data.hearts || 0;
+        }
+      } catch (e) {}
+    }
+
+    function togglePostHeart() {
+      const btn = document.getElementById("post-heart-btn");
+      const counter = document.getElementById("heart-counter");
+      btn.classList.toggle("liked");
+      const current = Number(counter.textContent) || 0;
+      counter.textContent = current + 1;
+      AnalyticsTracker.track("hearts");
+      ToastController.show("感謝您的共鳴支持！", "success");
+    }
+
+    /**
+     * ==========================================================================
+     * Step 13 & Step 14: 文章前台瀑布流、防抖搜尋與多維排序
+     * ==========================================================================
+     */
+    function debounce(func, delay) {
+      let timeout = null;
+      return function () {
+        const context = this;
+        const args = arguments;
+        clearTimeout(timeout);
+        timeout = setTimeout(function () {
+          func.apply(context, args);
+        }, delay || 300);
+      };
+    }
+
+    const handleSearchInputDebounced = debounce(function (val) {
+      StateStore.setState("filterKeyword", (val || "").trim().toLowerCase());
+      applyFiltersAndRender();
+    }, 300);
+
+    function handleSortChange(val) {
+      StateStore.setState("sortOption", val);
+      applyFiltersAndRender();
+    }
+
+    function resetPostFilters() {
+      document.getElementById("post-search-input").value = "";
+      document.getElementById("post-sort-select").value = "newest";
+      StateStore.setState("filterKeyword", "");
+      StateStore.setState("sortOption", "newest");
+      applyFiltersAndRender();
+      ToastController.show("已重設文章篩選條件", "info");
+    }
+
+    async function loadPostsData() {
+      const container = document.getElementById("posts-display-container");
+      container.innerHTML = 
+        '<div class="skeleton skeleton-title" style="margin-bottom: 24px;"></div>' +
+        '<div class="posts-grid">' +
+          '<div class="skeleton" style="height: 140px;"></div>' +
+          '<div class="skeleton" style="height: 140px;"></div>' +
+        '</div>';
+
+      try {
+        const response = await fetch("posts.json?t=" + new Date().getTime());
+        if (response.ok) {
+          const posts = await response.json();
+          StateStore.setState("allPosts", posts);
+          applyFiltersAndRender();
+          return;
+        }
+      } catch (e) {}
+
+      try {
+        const res = await callBackendApi("getPosts");
+        if (res.status === "success" && Array.isArray(res.data)) {
+          StateStore.setState("allPosts", res.data);
+          applyFiltersAndRender();
+        } else {
+          renderEmptyPostsState("目前文章庫暫無發布記錄");
+        }
+      } catch (err) {
+        renderEmptyPostsState("無法連接文章伺服器：" + err.message);
+      }
+    }
+
+    function applyFiltersAndRender() {
+      const allPosts = StateStore.getState("allPosts") || [];
+      const keyword = StateStore.getState("filterKeyword") || "";
+      const sortOption = StateStore.getState("sortOption") || "newest";
+
+      let filtered = allPosts.filter(function (post) {
+        if (!keyword) return true;
+        const titleMatch = (post.title || "").toLowerCase().indexOf(keyword) !== -1;
+        const hookMatch = (post.hook || "").toLowerCase().indexOf(keyword) !== -1;
+        const contentMatch = (post.content_html || "").toLowerCase().indexOf(keyword) !== -1;
+        return titleMatch || hookMatch || contentMatch;
+      });
+
+      filtered.sort(function (a, b) {
+        if (sortOption === "newest") {
+          return new Date(b.created_at || 0) - new Date(a.created_at || 0);
+        } else if (sortOption === "oldest") {
+          return new Date(a.created_at || 0) - new Date(b.created_at || 0);
+        } else if (sortOption === "popular") {
+          const scoreA = (Number(a.views) || 0) * 2 + (Number(a.diagnostic_score) || 90);
+          const scoreB = (Number(b.views) || 0) * 2 + (Number(b.diagnostic_score) || 90);
+          return scoreB - scoreA;
+        }
+        return 0;
+      });
+
+      renderPostCards(filtered);
+    }
+
+    function renderPostCards(posts) {
+      const container = document.getElementById("posts-display-container");
+      container.innerHTML = "";
+
+      if (!posts || posts.length === 0) {
+        renderEmptyPostsState("找不到符合搜尋條件的文章");
+        return;
+      }
+
+      // 置頂最新焦點卡片
+      const heroPost = posts[0];
+      const heroCard = document.createElement("div");
+      heroCard.className = "hero-feature-card";
+
+      const heroWordCount = getCleanText(heroPost.content_html).length || 800;
+      const heroReadTime = Math.max(1, Math.ceil(heroWordCount / 350));
+      const heroDateStr = heroPost.created_at ? new Date(heroPost.created_at).toLocaleDateString("zh-TW") : "最新刊登";
+      const heroAudioCount = (heroPost.audio_files && heroPost.audio_files.length) || 0;
+
+      heroCard.innerHTML = 
+        '<div class="hero-tag-row">' +
+          '<span class="hero-badge">最新精選發布</span>' +
+          '<span>' + heroDateStr + '</span>' +
+        '</div>' +
+        '<h3 class="hero-title"><a href="#article/' + heroPost.id + '">' + heroPost.title + '</a></h3>' +
+        '<p class="hero-hook">' + (heroPost.hook || "點擊進入閱讀時間貧窮解放之全篇精華...") + '</p>' +
+        '<div class="hero-meta-row">' +
+          '<div class="hero-stats">' +
+            '<span><i data-lucide="clock" style="width: 13px; height: 13px; margin-right: 4px;"></i> 約 ' + heroReadTime + ' 分鐘閱讀</span>' +
+            '<span><i data-lucide="headphones" style="width: 13px; height: 13px; margin-right: 4px;"></i> ' + heroAudioCount + ' 段錄音切片</span>' +
+            '<span><i data-lucide="award" style="width: 13px; height: 13px; margin-right: 4px;"></i> 診斷 ' + (heroPost.diagnostic_score || 95) + ' 分</span>' +
+          '</div>' +
+          '<button onclick="ViewSwitcher.navigate(\'article\', \'' + heroPost.id + '\')" class="btn btn-primary btn-sm">' +
+            '<i data-lucide="book-open" style="width: 13px; height: 13px;"></i> 進入完整閱讀' +
+          '</button>' +
+        '</div>';
+
+      container.appendChild(heroCard);
+
+      // 歷史文章瀑布流網格
+      if (posts.length > 1) {
+        const gridTitle = document.createElement("h3");
+        gridTitle.style.cssText = "font-size: 16px; font-weight: 700; margin: 28px 0 16px 0;";
+        gridTitle.innerHTML = '<i data-lucide="archive" style="width: 16px; height: 16px; margin-right: 6px; display: inline-block; vertical-align: middle;"></i> 歷史發布文章存檔 (' + (posts.length - 1) + ')';
+        container.appendChild(gridTitle);
+
+        const grid = document.createElement("div");
+        grid.className = "posts-grid";
+
+        for (let i = 1; i < posts.length; i++) {
+          const p = posts[i];
+          const wCount = getCleanText(p.content_html).length || 800;
+          const rTime = Math.max(1, Math.ceil(wCount / 350));
+          const pDate = p.created_at ? new Date(p.created_at).toLocaleDateString("zh-TW") : "";
+
+          const card = document.createElement("div");
+          card.className = "post-card";
+          card.innerHTML = 
+            '<div>' +
+              '<h4 class="post-card-title">' + p.title + '</h4>' +
+              '<p class="post-card-hook">' + (p.hook || getCleanText(p.content_html).substring(0, 80)) + '</p>' +
+            '</div>' +
+            '<div class="post-card-footer">' +
+              '<span>' + pDate + '</span>' +
+              '<span>約 ' + rTime + ' 分鐘</span>' +
+              '<button onclick="ViewSwitcher.navigate(\'article\', \'' + p.id + '\')" class="btn btn-secondary btn-sm" style="height: 28px; padding: 0 8px;">閱讀</button>' +
+            '</div>';
+
+          grid.appendChild(card);
+        }
+
+        container.appendChild(grid);
+      }
+
+      lucide.createIcons();
+    }
+
+    function renderEmptyPostsState(msg) {
+      const container = document.getElementById("posts-display-container");
+      container.innerHTML = 
+        '<div class="empty-state">' +
+          '<i data-lucide="file-search" style="width: 32px; height: 32px; margin-bottom: 8px; color: var(--text-muted);"></i>' +
+          '<p class="empty-state-title">' + msg + '</p>' +
+          '<p style="font-size: 13px; color: var(--text-muted); margin-bottom: 16px;">您可以嘗試不同的搜尋關鍵字，或切換至錄音面板發布新文章。</p>' +
+          '<button class="btn btn-secondary btn-sm" onclick="resetPostFilters()">' +
+            '<i data-lucide="refresh-cw" style="width: 14px; height: 14px;"></i> 清除篩選條件' +
+          '</button>' +
+        '</div>';
+      lucide.createIcons();
+    }
+
+    /**
+     * ==========================================================================
+     * Step 13 & Step 16: 60 秒切片錄音控制器、波形動畫與 Drive 自動上傳
+     * ==========================================================================
+     */
+    let recordingTimerInterval = null;
+    let recordingSeconds = 0;
+    let activeMediaRecorder = null;
+    let activeAudioStream = null;
+    let isRecordingPaused = false;
 
     async function startRecording() {
       try {
-        audioStream = await navigator.mediaDevices.getUserMedia({ audio: true });
-        const mimeType = MediaRecorder.isTypeSupported("audio/webm") ? "audio/webm" : "audio/mp4";
-        mediaRecorder = new MediaRecorder(audioStream, { mimeType });
-        fullAudioChunks = [];
-        recordSecondCounter = 0;
-        minuteSliceIndex = 1;
+        const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
+        activeAudioStream = stream;
+        recordingSeconds = 0;
+        isRecordingPaused = false;
 
-        mediaRecorder.ondataavailable = async (e) => {
+        document.getElementById("recording-status-badge").style.display = "inline-flex";
+        document.getElementById("recording-status-text").textContent = "錄音進行中";
+        document.getElementById("waveform-visualizer").classList.add("active");
+
+        document.getElementById("btn-start-record").classList.add("btn-disabled");
+        document.getElementById("btn-pause-record").classList.remove("btn-disabled");
+        document.getElementById("btn-stop-record").classList.remove("btn-disabled");
+        updatePauseButtonUi(false);
+
+        startTimer();
+
+        const recorder = new MediaRecorder(stream);
+        let chunkCount = StateStore.getState("audioChunksList").length;
+
+        recorder.ondataavailable = async function (e) {
           if (e.data && e.data.size > 0) {
-            fullAudioChunks.push(e.data);
-            await processMinuteSlice(e.data, minuteSliceIndex);
-            minuteSliceIndex++;
+            chunkCount++;
+            const chunkIndex = chunkCount;
+            ToastController.show("正在上傳第 " + chunkIndex + " 段 60 秒切片至 Drive...", "info");
+
+            const reader = new FileReader();
+            reader.onloadend = async function () {
+              const base64Data = reader.result.split(",")[1];
+              try {
+                const res = await callBackendApi("saveAudioChunk", {
+                  sessionId: StateStore.getState("sessionId"),
+                  chunkIndex: chunkIndex,
+                  base64Data: base64Data,
+                  mimeType: e.data.type || "audio/mp3"
+                });
+
+                if (res.status === "success" && res.data) {
+                  const currentChunks = StateStore.getState("audioChunksList").concat([res.data]);
+                  StateStore.setState("audioChunksList", currentChunks);
+                  renderAudioChunks();
+                  ToastController.show("第 " + chunkIndex + " 段切片已安全儲存至 Google Drive", "success");
+                }
+              } catch (uploadErr) {
+                ToastController.show("切片上傳異常: " + uploadErr.message, "error");
+              }
+            };
+            reader.readAsDataURL(e.data);
           }
         };
 
-        // 每滿 60 秒自動 requestData
-        mediaRecorder.start();
-        chunkIntervalTimer = setInterval(() => {
-          recordSecondCounter++;
-          const t = formatTime(recordSecondCounter);
-          document.getElementById("recordingTimerDisplay").innerText = t;
-          document.getElementById("bottomTimer").innerText = t;
-
-          if (recordSecondCounter % 60 === 0 && mediaRecorder.state === "recording") {
-            mediaRecorder.requestData();
-          }
-        }, 1000);
-
-        document.getElementById("recordLed").classList.remove("hidden");
-        document.getElementById("btnStartRecord").disabled = true;
-        document.getElementById("btnPauseRecord").disabled = false;
-        document.getElementById("btnStopRecord").disabled = false;
-        StateStore.set("recordingStatus", "RECORDING");
-        showToast("已啟動策略錄音，每 60 秒自動上傳轉錄", "info");
+        recorder.start(60000);
+        activeMediaRecorder = recorder;
+        ToastController.show("開始錄音，請對麥克風自然敘述業務觀點", "info");
       } catch (err) {
-        showToast("無法存取麥克風設備：" + err.message, "error");
+        ToastController.show("無法存取麥克風設備: " + err.message, "error");
       }
     }
 
-    function pauseRecording() {
-      if (!mediaRecorder) return;
-      if (mediaRecorder.state === "recording") {
-        mediaRecorder.pause();
-        document.getElementById("btnPauseRecord").innerHTML = `<i data-feather="play" class="w-4 h-4"></i><span>繼續</span>`;
-        document.getElementById("recordLed").classList.add("hidden");
-        showToast("錄音已暫停", "info");
-      } else if (mediaRecorder.state === "paused") {
-        mediaRecorder.resume();
-        document.getElementById("btnPauseRecord").innerHTML = `<i data-feather="pause" class="w-4 h-4"></i><span>暫停</span>`;
-        document.getElementById("recordLed").classList.remove("hidden");
-        showToast("錄音已恢復", "info");
+    function togglePauseRecording() {
+      if (!activeMediaRecorder) return;
+
+      if (!isRecordingPaused) {
+        activeMediaRecorder.pause();
+        isRecordingPaused = true;
+        clearInterval(recordingTimerInterval);
+        document.getElementById("recording-status-text").textContent = "錄音已暫停";
+        document.getElementById("waveform-visualizer").classList.remove("active");
+        updatePauseButtonUi(true);
+        ToastController.show("錄音已暫停", "info");
+      } else {
+        activeMediaRecorder.resume();
+        isRecordingPaused = false;
+        startTimer();
+        document.getElementById("recording-status-text").textContent = "錄音進行中";
+        document.getElementById("waveform-visualizer").classList.add("active");
+        updatePauseButtonUi(false);
+        ToastController.show("錄音已繼續", "info");
       }
-      feather.replace();
     }
 
-    async function stopRecording() {
-      if (!mediaRecorder) return;
-      clearInterval(chunkIntervalTimer);
-
-      return new Promise((resolve) => {
-        mediaRecorder.onstop = async () => {
-          if (audioStream) {
-            audioStream.getTracks().forEach(track => track.stop());
-          }
-
-          document.getElementById("recordLed").classList.add("hidden");
-          document.getElementById("btnStartRecord").disabled = false;
-          document.getElementById("btnPauseRecord").disabled = true;
-          document.getElementById("btnStopRecord").disabled = true;
-          StateStore.set("recordingStatus", "STOPPED");
-
-          const mimeType = mediaRecorder.mimeType || "audio/webm";
-          const fullAudioBlob = new Blob(fullAudioChunks, { type: mimeType });
-
-          // 本地播放器試聽載入 (Step 16)
-          const audioUrl = URL.createObjectURL(fullAudioBlob);
-          const player = document.getElementById("fullAudioPreview");
-          player.src = audioUrl;
-          document.getElementById("audioPlayerSection").classList.remove("hidden");
-
-          // 封存並上傳完整音檔至 Drive (Step 15)
-          showToast("正在封存並上傳完整音檔至 Google Drive...", "info");
-          const base64Audio = await blobToBase64(fullAudioBlob);
-          const epId = StateStore.get("currentEpisodeId") || "EP001";
-
-          try {
-            const saveRes = await sendGasRequest("save_full_audio", {
-              episodeId: epId,
-              fullAudioBase64: base64Audio
-            });
-            if (saveRes && saveRes.fullAudioUrl) {
-              StateStore.set("fullAudioUrl", saveRes.fullAudioUrl);
-              showToast("完整音檔已成功保存至 Google Drive", "success");
-            }
-          } catch (e) {
-            showToast("完整音檔儲存失敗：" + e.message, "error");
-          }
-
-          // 自動觸發階段一 20 組爆款策略生成 (Step 15)
-          triggerStrategyGeneration();
-          resolve();
-        };
-
-        mediaRecorder.stop();
-      });
+    function updatePauseButtonUi(paused) {
+      const icon = document.getElementById("icon-pause-record");
+      const text = document.getElementById("text-pause-record");
+      if (paused) {
+        icon.setAttribute("data-lucide", "play");
+        text.textContent = "繼續錄音";
+      } else {
+        icon.setAttribute("data-lucide", "pause");
+        text.textContent = "暫停錄音";
+      }
+      lucide.createIcons();
     }
 
-    async function processMinuteSlice(blobChunk, sliceIdx) {
-      const epId = StateStore.get("currentEpisodeId") || "EP001";
-      const feed = document.getElementById("transcript-feed");
-      document.getElementById("emptyTranscriptNotice")?.remove();
+    function stopRecording() {
+      if (activeMediaRecorder && activeMediaRecorder.state !== "inactive") {
+        activeMediaRecorder.stop();
+      }
+      if (activeAudioStream) {
+        activeAudioStream.getTracks().forEach(function (track) { track.stop(); });
+      }
 
-      // 樂觀 UI 佔位卡片 (Step 10)
-      const placeholderCard = document.createElement("div");
-      placeholderCard.className = "p-3 bg-[#FAFAFA] border border-[#E5E5E5] rounded-[6px] text-[13px] flex flex-col gap-1";
-      placeholderCard.id = `chunk-card-${sliceIdx}`;
-      placeholderCard.innerHTML = `
-        <div class="flex items-center justify-between text-caption">
-          <span class="font-medium text-[#111111]">第 ${sliceIdx} 分鐘切片</span>
-          <span class="text-[#888888]">轉錄處理中...</span>
-        </div>
-        <p class="text-[#888888] italic">語音正在由 Gemini 3 進行高精度轉錄...</p>
-      `;
-      feed.appendChild(placeholderCard);
-      feed.scrollTop = feed.scrollHeight;
+      clearInterval(recordingTimerInterval);
+      isRecordingPaused = false;
 
-      const base64Data = await blobToBase64(blobChunk);
+      document.getElementById("recording-status-badge").style.display = "none";
+      document.getElementById("waveform-visualizer").classList.remove("active");
+      document.getElementById("btn-start-record").classList.remove("btn-disabled");
+      document.getElementById("btn-pause-record").classList.add("btn-disabled");
+      document.getElementById("btn-stop-record").classList.add("btn-disabled");
+      updatePauseButtonUi(false);
 
-      if (!navigator.onLine) {
-        // 離線存入 IndexedDB (Step 19)
-        await OfflineStorage.saveChunk({
-          episodeId: epId,
-          minuteIndex: sliceIdx,
-          audioBase64: base64Data,
-          timestamp: Date.now()
-        });
-        placeholderCard.querySelector(".text-[#888888]").innerText = "已離線暫存";
+      ToastController.show("錄音完成，進入 AI 兩階段選題提案生成", "success");
+      ViewSwitcher.navigate("proposals");
+      requestProposalsFromAudio();
+    }
+
+    function startTimer() {
+      const timerText = document.getElementById("timer-text");
+      const chunkInfo = document.getElementById("chunk-info-text");
+
+      recordingTimerInterval = setInterval(function () {
+        recordingSeconds++;
+        const mins = String(Math.floor(recordingSeconds / 60)).padStart(2, "0");
+        const secs = String(recordingSeconds % 60).padStart(2, "0");
+        timerText.textContent = mins + ":" + secs;
+
+        const currentChunkNumber = Math.floor(recordingSeconds / 60) + 1;
+        const secondsInCurrentChunk = recordingSeconds % 60;
+        chunkInfo.textContent = "正在錄製第 " + currentChunkNumber + " 段切片 (本段已錄 " + secondsInCurrentChunk + " / 60 秒)";
+      }, 1000);
+    }
+
+    function renderAudioChunks() {
+      const container = document.getElementById("audio-chunks-container");
+      container.innerHTML = "";
+      const chunks = StateStore.getState("audioChunksList") || [];
+
+      if (chunks.length === 0) {
+        container.innerHTML = '<span style="color: var(--text-muted); font-size: 13px;">暫無切片</span>';
         return;
       }
 
+      chunks.forEach(function (chunk, idx) {
+        const item = document.createElement("div");
+        item.className = "chunk-badge";
+        item.innerHTML = '<i data-lucide="music-2" style="width: 14px; height: 14px;"></i> 切片 ' + (idx + 1) + ' (' + (chunk.name || "chunk.mp3") + ')';
+        container.appendChild(item);
+      });
+      lucide.createIcons();
+    }
+
+    /**
+     * ==========================================================================
+     * Step 15 & Step 17: 階段一提案選題與階段二極致呼吸感全文產出
+     * ==========================================================================
+     */
+    async function requestProposalsFromAudio() {
+      ToastController.show("Gemini 正在依陳修平 7x11 爆款矩陣產出 20 組提案...", "info");
+      const container = document.getElementById("proposals-container");
+      container.innerHTML = 
+        '<div style="text-align: center; padding: 40px; color: var(--text-muted);">' +
+          '<i data-lucide="loader" style="width: 24px; height: 24px; animation: spin 1.5s linear infinite; margin-bottom: 8px;"></i>' +
+          '<p>正在萃取 20 組策略提案，請稍候...</p>' +
+        '</div>';
+      lucide.createIcons();
+
       try {
-        const result = await sendGasRequest("upload_chunk", {
-          episodeId: epId,
-          minuteIndex: sliceIdx,
-          audioBase64: base64Data,
-          mimeType: blobChunk.type || "audio/webm"
+        const res = await callBackendApi("generateProposals", {
+          sessionId: StateStore.getState("sessionId"),
+          audioChunks: StateStore.getState("audioChunksList")
         });
 
-        if (result && result.transcript) {
-          placeholderCard.innerHTML = `
-            <div class="flex items-center justify-between text-caption">
-              <span class="font-medium text-[#111111]">第 ${sliceIdx} 分鐘切片</span>
-              <span class="text-green-600 font-mono">轉錄完成</span>
-            </div>
-            <p class="text-[#111111] leading-relaxed mt-1">${result.transcript}</p>
-          `;
-          const allChunks = StateStore.get("chunkTranscripts") || [];
-          allChunks.push(result.transcript);
-          StateStore.set("chunkTranscripts", allChunks);
-          document.getElementById("chunkCountBadge").innerText = `${allChunks.length} 個切片`;
+        if (res.status === "success" && res.data) {
+          StateStore.setState("proposalsList", res.data);
+          renderProposalsList(res.data);
+          ToastController.show("已產出 20 組提案", "success");
+        } else {
+          container.innerHTML = '<div style="text-align: center; padding: 40px; color: #D9383A;">產生提案失敗：' + (res.message || "未知錯誤") + '</div>';
         }
       } catch (err) {
-        placeholderCard.querySelector("p").innerText = `轉錄失敗：${err.message}`;
+        container.innerHTML = '<div style="text-align: center; padding: 40px; color: #D9383A;">通訊異常：' + err.message + '</div>';
       }
     }
 
-    function blobToBase64(blob) {
-      return new Promise((resolve) => {
-        const reader = new FileReader();
-        reader.onloadend = () => resolve(reader.result);
-        reader.readAsDataURL(blob);
+    function renderProposalsList(proposals) {
+      const container = document.getElementById("proposals-container");
+      container.innerHTML = "";
+
+      if (!proposals || proposals.length === 0) {
+        container.innerHTML = '<div style="text-align: center; padding: 40px; color: var(--text-muted);">尚無提案資料。</div>';
+        return;
+      }
+
+      proposals.forEach(function (prop, idx) {
+        const card = document.createElement("div");
+        card.className = "proposal-card";
+        card.id = "proposal-card-" + idx;
+        card.onclick = function () { selectProposal(idx); };
+
+        card.innerHTML = 
+          '<input type="radio" name="proposal_radio" class="proposal-radio" id="prop-radio-' + idx + '">' +
+          '<div style="flex: 1;">' +
+            '<div class="proposal-title">' + (idx + 1) + '. ' + prop.title + '</div>' +
+            '<div class="proposal-tags">' +
+              '<span class="badge"><i data-lucide="tag" style="width: 10px; height: 10px; margin-right: 4px;"></i>' + prop.theme + '</span>' +
+              '<span class="badge"><i data-lucide="zap" style="width: 10px; height: 10px; margin-right: 4px;"></i>' + prop.traffic_code + '</span>' +
+            '</div>' +
+            '<div class="proposal-angle">切入觀點：' + prop.strategy_angle + '</div>' +
+          '</div>';
+
+        container.appendChild(card);
       });
+
+      document.getElementById("btn-generate-article").classList.add("btn-disabled");
+      lucide.createIcons();
     }
 
-    // ========================================================================
-    // 7. 階段一策略生成與 20 組卡片渲染器 (Step 13, 15)
-    // ========================================================================
-    async function triggerStrategyGeneration() {
-      const epId = StateStore.get("currentEpisodeId");
-      const aud = StateStore.get("audience");
-      const pnt = StateStore.get("painPoint");
-      const kwd = StateStore.get("keywords");
+    function selectProposal(index) {
+      const proposals = StateStore.getState("proposalsList");
+      StateStore.setState("selectedProposal", proposals[index]);
 
-      const listContainer = document.getElementById("proposalsList");
-      listContainer.innerHTML = `
-        <div class="p-8 text-center flex flex-col items-center justify-center gap-3">
-          <div class="recording-pulse"></div>
-          <span class="text-[14px] font-medium text-[#111111]">AI 正在為您分析逐字稿並提煉 20 組爆款策略提案...</span>
-        </div>
-      `;
+      const radios = document.getElementsByName("proposal_radio");
+      const cards = document.querySelectorAll(".proposal-card");
+
+      cards.forEach(function (c, idx) {
+        if (idx === index) {
+          c.classList.add("selected");
+          radios[idx].checked = true;
+        } else {
+          c.classList.remove("selected");
+          radios[idx].checked = false;
+        }
+      });
+
+      document.getElementById("btn-generate-article").classList.remove("btn-disabled");
+    }
+
+    async function generateFullArticleAction() {
+      const selected = StateStore.getState("selectedProposal");
+      if (!selected) {
+        ToastController.show("請先單選一組提案", "error");
+        return;
+      }
+
+      ToastController.show("Gemini 正在撰寫全文與 100 分診斷表...", "info");
 
       try {
-        const res = await sendGasRequest("generate_strategies", {
-          episodeId: epId,
-          audience: aud,
-          painPoint: pnt,
-          keywords: kwd
+        const res = await callBackendApi("generateFullArticle", {
+          selectedProposal: selected,
+          audioChunks: StateStore.getState("audioChunksList")
         });
 
-        if (res && res.strategiesOutput) {
-          renderStrategyList(res.strategiesOutput);
-          showToast("20 組爆款策略已產出，請點選選定主標題", "success");
-          StateStore.set("activeStep", 3);
-          updateWorkflowNav(3);
+        if (res.status === "success" && res.data) {
+          const articleData = res.data;
+          const postObj = {
+            id: "post_" + new Date().getTime(),
+            title: articleData.title,
+            hook: articleData.hook,
+            content_html: articleData.content_html,
+            diagnostic_score: articleData.diagnostic_score || 95
+          };
+
+          StateStore.setState("currentPost", postObj);
+
+          document.getElementById("post-title-input").value = postObj.title;
+          document.getElementById("post-hook-input").value = postObj.hook;
+          document.getElementById("post-content-html-input").value = postObj.content_html;
+          document.getElementById("post-diagnostic-score-input").value = postObj.diagnostic_score;
+          document.getElementById("post-preview-container").innerHTML = postObj.content_html;
+          updateWordCountDisplay(postObj.content_html);
+
+          ToastController.show("全文撰寫完成，已載入編輯器", "success");
+          ViewSwitcher.navigate("editor");
+        } else {
+          ToastController.show("產生全文失敗: " + res.message, "error");
         }
-      } catch (e) {
-        listContainer.innerHTML = `<div class="p-4 text-center text-red-500 text-[13px]">策略提煉失敗：${e.message}</div>`;
-        showToast(e.message, "error");
+      } catch (err) {
+        ToastController.show("呼叫失敗: " + err.message, "error");
       }
     }
 
-    function renderStrategyList(rawStrategiesText) {
-      const listContainer = document.getElementById("proposalsList");
-      listContainer.innerHTML = "";
+    function handleTitleInput(val) { StateStore.updatePostField("title", val); }
+    function handleHookInput(val) { StateStore.updatePostField("hook", val); }
+    function handleHtmlInput(val) {
+      StateStore.updatePostField("content_html", val);
+      document.getElementById("post-preview-container").innerHTML = val;
+      updateWordCountDisplay(val);
+    }
+    function handleScoreInput(val) { StateStore.updatePostField("diagnostic_score", Number(val) || 95); }
 
-      // 提取 50 字觀點
-      document.getElementById("corePerspectiveBox").classList.remove("hidden");
-      document.getElementById("corePerspectiveText").innerText = rawStrategiesText.slice(0, 160) + "...";
-
-      const lines = rawStrategiesText.split("\n").filter(l => l.trim().length > 0);
-      let cardCounter = 1;
-
-      lines.forEach((line) => {
-        if (cardCounter > 20) return;
-        const cleanTitle = line.replace(/^\d+[\.\、\s]*/, "").replace(/【.*?】/g, "").trim();
-        if (cleanTitle.length < 5) return;
-
-        const padIndex = String(cardCounter).padStart(2, "0");
-        const card = document.createElement("div");
-        card.className = "strategy-badge flex flex-col gap-2";
-        card.innerHTML = `
-          <div class="flex items-center justify-between">
-            <span class="font-mono text-[12px] font-semibold text-[#888888]">#${padIndex}</span>
-            <span class="text-[11px] px-2 py-0.5 rounded bg-[#E5E5E5] text-[#111111]">爆款策略</span>
-          </div>
-          <h3 class="text-[14px] font-semibold text-[#111111] leading-snug">${cleanTitle}</h3>
-          <p class="text-caption text-[#666666] line-clamp-2">${line}</p>
-        `;
-
-        card.addEventListener("click", () => {
-          document.querySelectorAll(".strategy-badge").forEach(b => b.classList.remove("is-selected"));
-          card.classList.add("is-selected");
-
-          StateStore.set("selectedStrategy", cleanTitle);
-          document.getElementById("edit-title").value = cleanTitle;
-          document.getElementById("bottomCurrentTitle").innerText = cleanTitle;
-          document.getElementById("btnGenerateArticle").disabled = false;
-
-          showToast(`已鎖定標題 #${padIndex}：${cleanTitle}`, "success");
-        });
-
-        listContainer.appendChild(card);
-        cardCounter++;
-      });
+    function getCleanText(htmlStr) {
+      const tmp = document.createElement("div");
+      tmp.innerHTML = htmlStr || "";
+      return (tmp.textContent || tmp.innerText || "").trim();
     }
 
-    // ========================================================================
-    // 8. 階段二正式長文生成與後台編輯 (Step 16, 17)
-    // ========================================================================
-    document.getElementById("btnGenerateArticle").addEventListener("click", async () => {
-      const epId = StateStore.get("currentEpisodeId");
-      const title = document.getElementById("edit-title").value.trim();
-      const aud = StateStore.get("audience");
-      const pnt = StateStore.get("painPoint");
-      const kwd = StateStore.get("keywords");
+    function updateWordCountDisplay(htmlContent) {
+      const cleanText = getCleanText(htmlContent);
+      const count = cleanText.length;
+      const hintElem = document.getElementById("post-wordcount-hint");
+      if (hintElem) {
+        if (count >= 800) {
+          hintElem.textContent = "目前純文字數：" + count + " 字 (已符合大於 800 字規範)";
+          hintElem.style.color = "#16A34A";
+        } else {
+          hintElem.textContent = "目前純文字數：" + count + " 字 (發布需滿 800 字，尚差 " + (800 - count) + " 字)";
+          hintElem.style.color = "#D9383A";
+        }
+      }
+    }
+
+    function validateAndGoPublish() {
+      const post = StateStore.getState("currentPost");
+      const title = (post.title || "").trim();
+      const contentHtml = (post.content_html || "").trim();
+      const cleanText = getCleanText(contentHtml);
 
       if (!title) {
-        showToast("請先點選或輸入主標題", "error");
+        ToastController.show("文章標題不得為空", "error");
         return;
       }
 
-      const editor = document.getElementById("edit-content");
-      editor.innerText = "長文撰寫中...\n正在落實黃山料式極致呼吸感排版與 100 分量化診斷表...";
-
-      try {
-        const res = await sendGasRequest("generate_final_article", {
-          episodeId: epId,
-          selectedTitle: title,
-          audience: aud,
-          painPoint: pnt,
-          keywords: kwd
-        });
-
-        if (res) {
-          if (res.finalArticle) {
-            editor.innerText = res.finalArticle;
-            StateStore.set("articleDraft", res.finalArticle);
-            updateWordCount();
-          }
-          if (res.coverImageUrl) {
-            StateStore.set("coverImageUrl", res.coverImageUrl);
-            loadCoverImage(res.coverImageUrl);
-          }
-          // 渲染 100 分評分表
-          document.getElementById("score-card").classList.remove("hidden");
-          document.getElementById("scoreCardContent").innerText = "已順利通過 100 分量化內容診斷檢核，具備高度完讀率與自發性轉發動能。";
-          showToast("正式長文、量化診斷表與封面配圖已完成載入！", "success");
-
-          StateStore.set("activeStep", 4);
-          updateWorkflowNav(4);
-        }
-      } catch (err) {
-        editor.innerText = "長文生成失敗：" + err.message;
-        showToast(err.message, "error");
-      }
-    });
-
-    function loadCoverImage(url) {
-      const img = document.getElementById("preview-cover");
-      const placeholder = document.getElementById("previewCoverPlaceholder");
-      document.getElementById("inputCoverUrl").value = url;
-      img.src = url;
-      img.classList.remove("hidden");
-      placeholder.classList.add("hidden");
-    }
-
-    document.getElementById("btnUpdateCoverUrl").addEventListener("click", () => {
-      const u = document.getElementById("inputCoverUrl").value.trim();
-      if (u) {
-        loadCoverImage(u);
-        StateStore.set("coverImageUrl", u);
-        showToast("封面圖片連結已更新", "success");
-      }
-    });
-
-    // 編輯器工具列操作
-    document.getElementById("toolBold").addEventListener("click", () => document.execCommand("bold", false, null));
-    document.getElementById("toolQuote").addEventListener("click", () => {
-      const selection = window.getSelection().toString();
-      if (selection) document.execCommand("insertText", false, `\n> ${selection}\n`);
-    });
-    document.getElementById("toolHr").addEventListener("click", () => {
-      document.execCommand("insertText", false, "\n\n---\n\n");
-    });
-
-    // Emoji 檢查與一鍵過濾器 (Step 17)
-    const EMOJI_REGEX = /[\u{1F300}-\u{1F9FF}\u{2600}-\u{26FF}\u{2700}-\u{27BF}\u{1F1E6}-\u{1F1FF}\u{1F600}-\u{1F64F}\u{1F680}-\u{1F6FF}]/gu;
-
-    function checkEmoji() {
-      const text = document.getElementById("edit-content").innerText;
-      const hasEmoji = EMOJI_REGEX.test(text);
-      document.getElementById("emojiWarningBadge").style.display = hasEmoji ? "inline" : "none";
-      return hasEmoji;
-    }
-
-    document.getElementById("toolCleanEmoji").addEventListener("click", () => {
-      const ed = document.getElementById("edit-content");
-      ed.innerText = ed.innerText.replace(EMOJI_REGEX, "");
-      checkEmoji();
-      showToast("已成功淨化所有 Emoji，嚴守品牌極簡規範", "success");
-    });
-
-    function updateWordCount() {
-      const txt = document.getElementById("edit-content").innerText;
-      document.getElementById("wordCountDisplay").innerText = `${txt.length} 字`;
-      checkEmoji();
-    }
-    document.getElementById("edit-content").addEventListener("input", updateWordCount);
-
-    // 文末延伸閱讀清單動態維護 (Step 17)
-    function renderRecommendations() {
-      const list = StateStore.get("recommendedArticles") || [];
-      const c = document.getElementById("recommendationsContainer");
-      c.innerHTML = "";
-
-      list.forEach((item, idx) => {
-        const row = document.createElement("div");
-        row.className = "flex items-center gap-2";
-        row.innerHTML = `
-          <input type="text" class="form-input text-[12px] flex-1 rec-title" value="${item.title}" placeholder="文章標題">
-          <input type="text" class="form-input text-[12px] flex-1 rec-url" value="${item.url}" placeholder="URL">
-          <button class="btn-secondary h-8 px-2 text-[12px] text-red-500 hover:text-red-700" onclick="removeRecommendation(${idx})">刪除</button>
-        `;
-        c.appendChild(row);
-      });
-    }
-
-    window.removeRecommendation = function(idx) {
-      const list = StateStore.get("recommendedArticles") || [];
-      list.splice(idx, 1);
-      StateStore.set("recommendedArticles", list);
-      renderRecommendations();
-    };
-
-    document.getElementById("btnAddRecommendation").addEventListener("click", () => {
-      const list = StateStore.get("recommendedArticles") || [];
-      if (list.length >= 3) {
-        showToast("延伸閱讀最多推薦 3 篇", "error");
-        return;
-      }
-      list.push({ title: "新推薦文章", url: "https://growthx.tw/blog/" });
-      StateStore.set("recommendedArticles", list);
-      renderRecommendations();
-    });
-
-    // ========================================================================
-    // 9. GitHub REST API 一鍵發布模組 (Step 18)
-    // ========================================================================
-    document.getElementById("btnBottomPublish").addEventListener("click", () => {
-      const epId = StateStore.get("currentEpisodeId") || "EP001";
-      const title = document.getElementById("edit-title").value.trim();
-      const content = document.getElementById("edit-content").innerText.trim();
-      const coverUrl = StateStore.get("coverImageUrl") || "";
-      const audioUrl = StateStore.get("fullAudioUrl") || "";
-      const recList = StateStore.get("recommendedArticles") || [];
-
-      if (!content || content.length < 50) {
-        showToast("文章內容過短，請先生成完整長文", "error");
+      if (cleanText.length < 800) {
+        ToastController.show("內文純文字需滿 800 字（目前僅 " + cleanText.length + " 字）", "error");
         return;
       }
 
-      if (checkEmoji()) {
-        showToast("檢測到文中含有 Emoji，請點選「淨化 Emoji」後再行發布", "error");
+      const emojiRegex = /[\u{1F600}-\u{1F64F}\u{1F300}-\u{1F5FF}\u{1F680}-\u{1F6FF}\u{2600}-\u{26FF}\u{2700}-\u{27BF}\u{1F900}-\u{1F9FF}\u{1FA70}-\u{1FAFF}]/u;
+      if (emojiRegex.test(title) || emojiRegex.test(contentHtml)) {
+        ToastController.show("標題或內文偵測到 Emoji 表情符號，請全數移除", "error");
         return;
       }
 
-      openModal({
-        title: "發布至 GitHub 獨立文章頁面",
-        content: `
-          <div class="flex flex-col gap-2">
-            <p>即將為單集 <strong>[${epId}]</strong> 渲染獨立 HTML 網頁並推送至 GitHub：</p>
-            <div class="p-3 bg-[#F0F0F0] rounded text-[12px] font-mono">articles/ep-${epId.toLowerCase()}.html</div>
-            <p class="text-caption">標題：${title}</p>
-          </div>
-        `,
-        onConfirm: async () => {
-          showToast("正在渲染 HTML 並透過 GitHub API 提交 Commit...", "info");
+      ViewSwitcher.navigate("publish");
+    }
+
+    /**
+     * ==========================================================================
+     * Step 16: 發布至 GitHub 倉庫根目錄與試算表寫入
+     * ==========================================================================
+     */
+    async function publishToGitHubAction() {
+      const post = StateStore.getState("currentPost");
+      const title = (post.title || "").trim();
+      const contentHtml = (post.content_html || "").trim();
+
+      if (!title || !contentHtml) {
+        ToastController.show("標題與內文不可為空", "error");
+        return;
+      }
+
+      ModalController.open({
+        title: "確認發布至 GitHub",
+        content: "確定要將《" + title + "》發布至 GitHub 倉庫根目錄並更新 posts.json 與試算表嗎？",
+        onConfirm: async function () {
+          ToastController.show("正在推播檔案至 GitHub 倉庫根目錄...", "info");
+          const publishBtn = document.getElementById("btn-publish-github");
+          publishBtn.classList.add("btn-disabled");
+
           try {
-            const res = await sendGasRequest("publish_to_github", {
-              episodeId: epId,
-              title: title,
-              content: content,
-              coverImageUrl: coverUrl,
-              fullAudioUrl: audioUrl,
-              recommendedArticles: recList
+            const res = await callBackendApi("publishToGitHub", {
+              postData: {
+                id: post.id || ("post_" + new Date().getTime()),
+                title: title,
+                hook: post.hook || "",
+                content_html: contentHtml,
+                audio_files: StateStore.getState("audioChunksList"),
+                diagnostic_score: post.diagnostic_score || 95
+              }
             });
 
-            const pubUrl = res.publicUrl || `https://github.com/articles/ep-${epId.toLowerCase()}.html`;
-            openModal({
-              title: "文章發布成功！",
-              content: `
-                <div class="flex flex-col gap-3">
-                  <p>文章已成功編譯為靜態 HTML 並推送至 GitHub 儲存庫。</p>
-                  <div class="p-3 bg-[#F0F0F0] rounded text-[13px] font-mono break-all text-[#111111]">
-                    ${pubUrl}
-                  </div>
-                </div>
-              `,
-              onConfirm: () => {
-                window.open(pubUrl, "_blank");
-              },
-              showCancel: false
-            });
-            showToast("GitHub 推送成功，公開網址已寫入試算表！", "success");
-          } catch (e) {
-            showToast("發布失敗：" + e.message, "error");
+            if (res.status === "success") {
+              ToastController.show("文章已成功發布至 GitHub！", "success");
+              StateStore.clear();
+              setTimeout(function () {
+                ViewSwitcher.navigate("blog");
+              }, 1200);
+            } else {
+              ToastController.show("發布失敗: " + res.message, "error");
+              publishBtn.classList.remove("btn-disabled");
+            }
+          } catch (err) {
+            ToastController.show("發布異常: " + err.message, "error");
+            publishBtn.classList.remove("btn-disabled");
           }
         }
-      });
-    });
-
-    // ========================================================================
-    // 10. 斷網防禦、IndexedDB 離線補傳與離開警告 (Step 19)
-    // ========================================================================
-    window.addEventListener("beforeunload", (e) => {
-      const isRecording = StateStore.get("recordingStatus") === "RECORDING";
-      const hasDraft = (document.getElementById("edit-content").innerText || "").length > 50;
-      if (isRecording || hasDraft) {
-        e.preventDefault();
-        e.returnValue = "錄音或編輯中的內容尚未完全儲存，確定要離開嗎？";
-        return e.returnValue;
-      }
-    });
-
-    window.addEventListener("offline", () => {
-      document.getElementById("offlineBanner").style.display = "block";
-      document.getElementById("networkIndicator").style.backgroundColor = "#888888";
-      document.getElementById("networkStatusText").innerText = "離線工作模式";
-      showToast("偵測到網路中斷，已啟動 IndexedDB 離線保護", "error");
-    });
-
-    window.addEventListener("online", async () => {
-      document.getElementById("offlineBanner").style.display = "none";
-      document.getElementById("networkIndicator").style.backgroundColor = "#111111";
-      document.getElementById("networkStatusText").innerText = "連線正常";
-      showToast("網路已復原，正在自動補傳離線切片...", "success");
-
-      // 復網自動補傳切片
-      const pending = await OfflineStorage.getPendingChunks();
-      if (pending && pending.length > 0) {
-        for (const item of pending) {
-          try {
-            await sendGasRequest("upload_chunk", {
-              episodeId: item.episodeId,
-              minuteIndex: item.minuteIndex,
-              audioBase64: item.audioBase64
-            });
-          } catch (e) {
-            console.error("補傳切片失敗", e);
-          }
-        }
-        await OfflineStorage.clearPendingChunks();
-        showToast("所有離線切片已全數補傳完畢！", "success");
-      }
-    });
-
-    // ========================================================================
-    // 11. 初始加載與事件監聽綁定 (Step 13, 20)
-    // ========================================================================
-    window.addEventListener("DOMContentLoaded", async () => {
-      feather.replace();
-      await OfflineStorage.init();
-
-      // 還原表單
-      const ep = StateStore.get("currentEpisodeId") || "EP001";
-      document.getElementById("inputEpisodeId").value = ep;
-      document.getElementById("headerEpisodeBadge").innerText = ep;
-      document.getElementById("inputAudience").value = StateStore.get("audience") || "";
-      document.getElementById("inputPainPoint").value = StateStore.get("painPoint") || "";
-      document.getElementById("inputKeywords").value = StateStore.get("keywords") || "";
-      
-      const st = StateStore.get("selectedStrategy");
-      if (st) {
-        document.getElementById("edit-title").value = st;
-        document.getElementById("bottomCurrentTitle").innerText = st;
-        document.getElementById("btnGenerateArticle").disabled = false;
-      }
-
-      renderRecommendations();
-      updateWorkflowNav(StateStore.get("activeStep") || 1);
-    });
-
-    function updateWorkflowNav(currentStep) {
-      document.querySelectorAll("#workflowNav .step-item").forEach(item => {
-        const s = parseInt(item.dataset.step, 10);
-        item.classList.remove("is-active", "is-completed");
-        if (s === currentStep) item.classList.add("is-active");
-        else if (s < currentStep) item.classList.add("is-completed");
       });
     }
 
-    document.querySelectorAll("#workflowNav .step-item").forEach(item => {
-      item.addEventListener("click", () => {
-        const target = document.getElementById(item.dataset.target);
-        if (target) {
-          target.scrollIntoView({ behavior: "smooth", block: "start" });
-          const s = parseInt(item.dataset.step, 10);
-          StateStore.set("activeStep", s);
-          updateWorkflowNav(s);
+    function confirmClearDraft() {
+      ModalController.open({
+        title: "清除本機草稿",
+        content: "確定要清空所有錄音切片與編輯中草稿嗎？此操作無法復原。",
+        onConfirm: function () {
+          StateStore.clear();
+          document.getElementById("post-title-input").value = "";
+          document.getElementById("post-hook-input").value = "";
+          document.getElementById("post-content-html-input").value = "";
+          document.getElementById("post-preview-container").innerHTML = "<p>尚未生成文章內文。</p>";
+          updateWordCountDisplay("");
+          renderAudioChunks();
+          renderProposalsList([]);
+          ToastController.show("草稿已成功清除", "success");
+          ViewSwitcher.navigate("record");
         }
       });
+    }
+
+    /**
+     * ==========================================================================
+     * DOMContentLoaded 初始化
+     * ==========================================================================
+     */
+    document.addEventListener("DOMContentLoaded", function () {
+      ModalController.init();
+      ToastController.init();
+      OfflineQueue.init();
+      StateStore.init();
+      SeamlessAudioPlayer.init();
+      ViewSwitcher.init();
+      lucide.createIcons();
+
+      EventHub.on("state:restored", function (savedState) {
+        renderAudioChunks();
+        if (savedState.proposalsList && savedState.proposalsList.length > 0) {
+          renderProposalsList(savedState.proposalsList);
+        }
+        if (savedState.currentPost) {
+          document.getElementById("post-title-input").value = savedState.currentPost.title || "";
+          document.getElementById("post-hook-input").value = savedState.currentPost.hook || "";
+          document.getElementById("post-content-html-input").value = savedState.currentPost.content_html || "";
+          document.getElementById("post-diagnostic-score-input").value = savedState.currentPost.diagnostic_score || 95;
+          document.getElementById("post-preview-container").innerHTML = savedState.currentPost.content_html || "<p>尚未生成文章內文。</p>";
+          updateWordCountDisplay(savedState.currentPost.content_html || "");
+        }
+        renderUserProfileBadge();
+      });
     });
-
-    document.getElementById("btnStartRecord").addEventListener("click", startRecording);
-    document.getElementById("btnPauseRecord").addEventListener("click", pauseRecording);
-    document.getElementById("btnStopRecord").addEventListener("click", stopRecording);
-
-    document.getElementById("btnSaveStrategy").addEventListener("click", () => {
-      const ep = document.getElementById("inputEpisodeId").value.trim() || "EP001";
-      const a = document.getElementById("inputAudience").value.trim();
-      const p = document.getElementById("inputPainPoint").value.trim();
-      const k = document.getElementById("inputKeywords").value.trim();
-
-      if (!a || !p || !k) {
-        showToast("請填寫所有標記 * 之策略定位欄位", "error");
-        return;
-      }
-
-      StateStore.set("currentEpisodeId", ep);
-      StateStore.set("audience", a);
-      StateStore.set("painPoint", p);
-      StateStore.set("keywords", k);
-      document.getElementById("headerEpisodeBadge").innerText = ep;
-
-      showToast("策略三要素設定已鎖定並儲存", "success");
-      StateStore.set("activeStep", 2);
-      updateWorkflowNav(2);
-    });
-
-    document.getElementById("btnInitDbManual").addEventListener("click", async () => {
-      try {
-        showToast("驗證試算表結構中...", "info");
-        await sendGasRequest("init_database", {});
-        showToast("試算表結構與作者設定檢查完畢", "success");
-      } catch(e) {
-        showToast("初始化錯誤：" + e.message, "error");
-      }
-    });
-
-    document.getElementById("btnGenerateStrategies").addEventListener("click", triggerStrategyGeneration);
   </script>
 </body>
 </html>
