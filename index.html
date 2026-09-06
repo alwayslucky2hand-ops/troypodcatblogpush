@@ -103,7 +103,7 @@
       flex-wrap: wrap;
     }
 
-    /* 離線防護狀態與同步指示器 (Step 19) */
+    /* 離線防護狀態與同步指示器 */
     .network-badge {
       display: inline-flex;
       align-items: center;
@@ -354,23 +354,48 @@
       justify-content: center;
     }
 
+    /* 切片與逐字稿即時展示面板 */
     .audio-chunks-list {
       display: flex;
-      flex-wrap: wrap;
-      gap: 8px;
+      flex-direction: column;
+      gap: 10px;
       margin-top: 10px;
     }
 
-    .chunk-badge {
-      display: inline-flex;
-      align-items: center;
-      gap: 6px;
+    .chunk-card {
       background-color: var(--bg-main);
       border: 1px solid var(--border-light);
-      padding: 6px 12px;
+      border-radius: var(--radius-default);
+      padding: 12px 14px;
+      display: flex;
+      flex-direction: column;
+      gap: 8px;
+    }
+
+    .chunk-card-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      font-size: 13px;
+      font-weight: 600;
+    }
+
+    .chunk-transcript-box {
+      background-color: var(--bg-card);
       border-radius: 4px;
-      font-size: 12px;
+      padding: 8px 12px;
+      font-size: 13px;
       color: var(--text-secondary);
+      line-height: 1.6;
+    }
+
+    .chunk-link-tag {
+      display: inline-flex;
+      align-items: center;
+      gap: 4px;
+      font-size: 11px;
+      color: #2563EB;
+      text-decoration: underline;
     }
 
     /* 提案卡片網格 */
@@ -493,7 +518,7 @@
 
     .breathing-preview p {
       margin-bottom: 20px;
-      line-height: 1.9;
+      line-height: 1.95;
     }
 
     .breathing-preview h2 {
@@ -661,9 +686,7 @@
       color: var(--text-muted);
     }
 
-    /* ==========================================================================
-       Step 18: 無縫串流音訊播放器 (SeamlessAudioPlayer) 專用樣式
-       ========================================================================== */
+    /* 讀者端多切片無縫串流音訊播放器 */
     .audio-player-card {
       background-color: var(--bg-main);
       border: 1px solid var(--border-light);
@@ -753,9 +776,7 @@
       cursor: pointer;
     }
 
-    /* ==========================================================================
-       Step 18: Skeleton Loading 骨架屏閃爍動畫
-       ========================================================================== */
+    /* Skeleton Loading 骨架屏閃爍動畫 */
     .skeleton {
       background: linear-gradient(90deg, #F0F0F0 25%, #E4E4E4 50%, #F0F0F0 75%);
       background-size: 200% 100%;
@@ -780,9 +801,7 @@
       width: 70%;
     }
 
-    /* ==========================================================================
-       Step 19: 讀者留言系統、互動愛心與 100 分診斷表樣式
-       ========================================================================== */
+    /* 讀者閱讀、診斷卡與延伸閱讀 */
     .article-body-view {
       background-color: var(--bg-main);
       border: 1px solid var(--border-light);
@@ -825,7 +844,6 @@
       border-bottom: 1px solid var(--border-light);
     }
 
-    /* 100 分制診斷評分表卡片 (Step 17) */
     .diagnostic-card {
       background-color: var(--bg-card);
       border: 1px solid var(--border-light);
@@ -874,7 +892,56 @@
       color: var(--text-primary);
     }
 
-    /* 互動按鈕列與愛心計數 (Step 19) */
+    /* Gemini 智能延伸閱讀推薦區塊 */
+    .related-articles-section {
+      margin-top: 36px;
+      padding-top: 24px;
+      border-top: 1px dashed var(--border-light);
+    }
+
+    .related-articles-title {
+      font-size: 16px;
+      font-weight: 700;
+      margin-bottom: 16px;
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+
+    .related-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
+      gap: 14px;
+    }
+
+    .related-card {
+      background-color: var(--bg-card);
+      border: 1px solid var(--border-light);
+      border-radius: 6px;
+      padding: 14px;
+      cursor: pointer;
+      transition: all 0.2s ease;
+    }
+
+    .related-card:hover {
+      border-color: var(--text-primary);
+      background-color: var(--bg-main);
+    }
+
+    .related-card-title {
+      font-size: 14px;
+      font-weight: 600;
+      margin-bottom: 6px;
+      line-height: 1.4;
+    }
+
+    .related-card-reason {
+      font-size: 12px;
+      color: var(--text-muted);
+      line-height: 1.5;
+    }
+
+    /* 互動按鈕列與愛心計數 */
     .interaction-bar {
       display: flex;
       justify-content: space-between;
@@ -1124,7 +1191,11 @@
         <p class="brand-subtitle">創業者的時間貧窮解放師 ｜ 讓AI 為你效勞、讓創業不再過勞！</p>
       </div>
       <div class="header-actions">
-        <!-- 離線與同步防護徽章 (Step 19) -->
+        <!-- 即時試算表列號綁定狀態 -->
+        <span class="badge" id="sheet-row-badge" style="display: none; background-color: #E0E7FF; color: #3730A3;">
+          <i data-lucide="database" style="width: 12px; height: 12px; margin-right: 4px;"></i> 試算表列: <span id="sheet-row-text">-</span>
+        </span>
+        <!-- 離線與同步防護徽章 -->
         <div class="network-badge" id="network-badge">
           <span class="network-dot" id="network-dot"></span>
           <span id="network-text">連線正常</span>
@@ -1144,26 +1215,26 @@
         <i data-lucide="book-open" style="width: 14px; height: 14px;"></i> 前台文章總覽
       </div>
       <div class="step-pill active" id="pill-step1" onclick="ViewSwitcher.navigate('record')">
-        <i data-lucide="mic" style="width: 14px; height: 14px;"></i> 1. 語音錄製切片
+        <i data-lucide="mic" style="width: 14px; height: 14px;"></i> 1. 語音錄製與逐字稿
       </div>
       <div class="step-pill" id="pill-step2" onclick="ViewSwitcher.navigate('proposals')">
         <i data-lucide="list-checks" style="width: 14px; height: 14px;"></i> 2. AI 兩階段選題
       </div>
       <div class="step-pill" id="pill-step3" onclick="ViewSwitcher.navigate('editor')">
-        <i data-lucide="file-text" style="width: 14px; height: 14px;"></i> 3. 內文編輯預覽
+        <i data-lucide="file-text" style="width: 14px; height: 14px;"></i> 3. 內文編輯與同步
       </div>
       <div class="step-pill" id="pill-step4" onclick="ViewSwitcher.navigate('publish')">
         <i data-lucide="send" style="width: 14px; height: 14px;"></i> 4. 發布至 GitHub
       </div>
     </nav>
 
-    <!-- 視圖 0: 前台文章總覽與瀑布流 -->
+    <!-- 視圖 0: 前台文章總覽與瀑布流 (獨立網域部落格主頁) -->
     <section class="panel-section" id="panel-step-blog">
       <h2 class="panel-section-title">
-        <i data-lucide="library"></i> 發布文章總庫與讀者瀑布流
+        <i data-lucide="library"></i> 部落格文章總覽 (獨立頁面與流水清單)
       </h2>
 
-      <!-- 多維度篩選排序列 (Step 14) -->
+      <!-- 多維度篩選排序列 -->
       <div class="filter-toolbar">
         <div class="search-input-wrap">
           <i data-lucide="search" class="search-icon-pos" style="width: 16px; height: 16px;"></i>
@@ -1185,7 +1256,7 @@
       <div id="posts-display-container"></div>
     </section>
 
-    <!-- 視圖 0.5: 獨立文章閱讀與無縫音訊播放檢視 (Step 18 & Step 19) -->
+    <!-- 視圖 0.5: 獨立文章閱讀與無縫音訊播放檢視 -->
     <section class="panel-section" id="panel-step-article">
       <div class="action-bar" style="justify-content: flex-start; margin-top: 0; margin-bottom: 16px;">
         <button class="btn btn-secondary btn-sm" onclick="ViewSwitcher.navigate('blog')">
@@ -1193,7 +1264,7 @@
         </button>
       </div>
 
-      <!-- 讀者端多切片無縫串流音訊播放器 SeamlessAudioPlayer (Step 18) -->
+      <!-- 讀者端多切片無縫串流音訊播放器 SeamlessAudioPlayer -->
       <div class="audio-player-card" id="seamless-audio-player-card">
         <div class="player-header">
           <span><i data-lucide="headphones" style="width: 14px; height: 14px; vertical-align: middle; margin-right: 4px;"></i> 原聲音檔無縫切片串流</span>
@@ -1229,14 +1300,22 @@
 
       <!-- 正式文章內文閱讀區 (含黃山料極致呼吸感排版與 100 分診斷表) -->
       <article class="article-body-view" id="article-view-content">
-        <!-- 骨架屏載入預設 -->
         <div class="skeleton skeleton-title"></div>
         <div class="skeleton skeleton-text" style="width: 40%;"></div>
         <div class="skeleton skeleton-text"></div>
         <div class="skeleton skeleton-text"></div>
       </article>
 
-      <!-- 讀者留言板與 Google 帳號授權互動系統 (Step 19) -->
+      <!-- Gemini 語意智能推薦延伸閱讀區塊 -->
+      <section class="related-articles-section" id="related-articles-container" style="display: none;">
+        <h3 class="related-articles-title">
+          <i data-lucide="compass" style="width: 18px; height: 18px;"></i>
+          延伸推薦閱讀 (AI 語意媒合)
+        </h3>
+        <div class="related-grid" id="related-articles-grid"></div>
+      </section>
+
+      <!-- 讀者留言板與 Google 帳號授權互動系統 -->
       <section class="comments-section" id="comments-container">
         <h3 style="font-size: 16px; font-weight: 700; margin-bottom: 16px;">
           <i data-lucide="message-square" style="width: 16px; height: 16px; margin-right: 6px; vertical-align: middle;"></i> 讀者迴響討論
@@ -1269,10 +1348,10 @@
       </section>
     </section>
 
-    <!-- 視圖 1: 錄音控制、60 秒切片與波形指示 (Step 13 & Step 16) -->
+    <!-- 視圖 1: 錄音控制、60 秒切片、AI 逐字稿與雲端儲存 -->
     <section class="panel-section active" id="panel-step1">
       <h2 class="panel-section-title">
-        <i data-lucide="mic"></i> 錄音中樞 (每 60 秒自動切片並上傳至 Google Drive)
+        <i data-lucide="mic"></i> 錄音中樞 (每 60 秒切片上傳 Google Drive 並辨識逐字稿)
       </h2>
       
       <div class="recorder-box">
@@ -1314,14 +1393,17 @@
       </div>
 
       <div>
-        <span class="form-label">已成功上傳之切片音檔清單：</span>
+        <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 8px;">
+          <span class="form-label" style="margin-bottom: 0;">已上傳雲端之音檔切片與每分鐘逐字稿紀錄：</span>
+          <span id="chunk-count-badge" class="badge">0 段切片</span>
+        </div>
         <div class="audio-chunks-list" id="audio-chunks-container">
-          <span style="color: var(--text-muted); font-size: 13px;">暫無切片</span>
+          <span style="color: var(--text-muted); font-size: 13px;">暫無切片與逐字稿</span>
         </div>
       </div>
     </section>
 
-    <!-- 視圖 2: Gemini 階段一提案選題 (20組提案單選) (Step 15 & Step 17) -->
+    <!-- 視圖 2: Gemini 階段一提案選題 (20組提案單選) -->
     <section class="panel-section" id="panel-step2">
       <h2 class="panel-section-title">
         <i data-lucide="sparkles"></i> AI 階段一：陳修平 7x11 爆款矩陣策略提案 (請單選一組)
@@ -1343,11 +1425,16 @@
       </div>
     </section>
 
-    <!-- 視圖 3: 階段二正式文章編輯與極致呼吸感審閱 (Step 15 & Step 17) -->
+    <!-- 視圖 3: 階段二正式文章編輯與極致呼吸感審閱 -->
     <section class="panel-section" id="panel-step3">
-      <h2 class="panel-section-title">
-        <i data-lucide="edit-3"></i> AI 階段二：正式文章編輯與呼吸感審閱
-      </h2>
+      <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 16px; flex-wrap: wrap; gap: 8px;">
+        <h2 class="panel-section-title" style="margin-bottom: 0;">
+          <i data-lucide="edit-3"></i> AI 階段二：正式文章編輯與呼吸感審閱
+        </h2>
+        <button class="btn btn-secondary btn-sm" onclick="syncArticleToSpreadsheetManual()">
+          <i data-lucide="save" style="width: 14px; height: 14px;"></i> 即時同步儲存至試算表格
+        </button>
+      </div>
 
       <div class="form-group">
         <label class="form-label">文章正式標題 (嚴禁 Emoji)：</label>
@@ -1387,18 +1474,18 @@
       </div>
     </section>
 
-    <!-- 視圖 4: 一鍵發布至 GitHub 倉庫根目錄 (Step 16) -->
+    <!-- 視圖 4: 一鍵發布至 GitHub 倉庫根目錄與試算表總結 -->
     <section class="panel-section" id="panel-step4">
       <h2 class="panel-section-title">
-        <i data-lucide="upload-cloud"></i> 發布確認中樞
+        <i data-lucide="upload-cloud"></i> 發布確認中樞 (發布至獨立網頁與首頁流水)
       </h2>
       
       <p style="margin-bottom: 16px; color: var(--text-secondary); line-height: 1.8;">
         點選確認發布後，系統將依序執行下列自動化操作：<br>
-        1. 在 GitHub 倉庫根目錄建立實體 <code>post_時間戳.html</code> 檔案。<br>
-        2. 更新倉庫根目錄之 <code>posts.json</code> 文章全域索引。<br>
-        3. 同步寫入 Google 試算表 <code>【文章庫_發布總表】</code> 並初始化成效數據。<br>
-        4. 全程符合嚴格零 Emoji 與黃山料式排版呼吸感規範。
+        1. 在 GitHub 倉庫根目錄建立自帶完整樣式之 <code>post_[時間戳].html</code> 獨立文章網頁。<br>
+        2. 透過 Gemini API 智慧媒合全庫文章，注入專屬「延伸閱讀推薦」。<br>
+        3. 更新 GitHub 倉庫 <code>posts.json</code> 與獨立部落格首頁 <code>index.html</code> 流水清單。<br>
+        4. 同步更新 Google 試算表 <code>【文章庫_發布總表】</code> 儲存格（含逐字稿、提案選項、音檔直連網址與 GitHub 連結）。
       </p>
 
       <div class="action-bar">
@@ -1406,7 +1493,7 @@
           <i data-lucide="arrow-left"></i> 返回修改
         </button>
         <button class="btn btn-primary" id="btn-publish-github" onclick="publishToGitHubAction()">
-          <i data-lucide="check-circle-2"></i> 確認並一鍵發布至 GitHub
+          <i data-lucide="check-circle-2"></i> 確認並一鍵發布至 GitHub 獨立網頁
         </button>
       </div>
     </section>
@@ -1420,7 +1507,7 @@
     </button>
     <button class="bottom-nav-item active" id="bnav-record" onclick="ViewSwitcher.navigate('record')">
       <i data-lucide="mic" style="width: 18px; height: 18px;"></i>
-      <span>錄音切片</span>
+      <span>錄音逐字稿</span>
     </button>
     <button class="bottom-nav-item" id="bnav-proposals" onclick="ViewSwitcher.navigate('proposals')">
       <i data-lucide="list-checks" style="width: 18px; height: 18px;"></i>
@@ -1459,7 +1546,7 @@
   <script>
     /**
      * ==========================================================================
-     * Step 9 & Step 19: EventHub 事件總線與 LocalStorage 狀態管理 (含離線防護佇列)
+     * EventHub 事件總線與 LocalStorage 狀態管理 (含試算表 _rowId 綁定)
      * ==========================================================================
      */
     const EventHub = {
@@ -1479,10 +1566,12 @@
     };
 
     const StateStore = {
-      STORAGE_KEY: "TROY_AI_BLOG_STATE_V3",
+      STORAGE_KEY: "TROY_AI_BLOG_STATE_V4",
       state: {
         sessionId: "session_" + new Date().getTime(),
+        _rowId: null, // 試算表對應列號生死線
         audioChunksList: [],
+        transcriptsList: [], // 每分鐘語音逐字稿串列
         proposalsList: [],
         selectedProposal: null,
         currentPost: {
@@ -1492,6 +1581,7 @@
           content_html: "",
           diagnostic_score: 95
         },
+        relatedPosts: [],
         allPosts: [],
         activeReadingPost: null,
         filterKeyword: "",
@@ -1545,7 +1635,9 @@
         localStorage.removeItem(this.STORAGE_KEY);
         this.state = {
           sessionId: "session_" + new Date().getTime(),
+          _rowId: null,
           audioChunksList: [],
+          transcriptsList: [],
           proposalsList: [],
           selectedProposal: null,
           currentPost: {
@@ -1555,6 +1647,7 @@
             content_html: "",
             diagnostic_score: 95
           },
+          relatedPosts: [],
           allPosts: this.state.allPosts || [],
           activeReadingPost: null,
           filterKeyword: "",
@@ -1568,7 +1661,7 @@
 
     /**
      * ==========================================================================
-     * Step 19: 離線防護機制 OfflineQueue (監聽 online/offline 並於復原後自動重發)
+     * 離線防護機制 OfflineQueue (監聽 online/offline 並於復原後自動重發)
      * ==========================================================================
      */
     const OfflineQueue = {
@@ -1617,40 +1710,7 @@
 
     /**
      * ==========================================================================
-     * Step 10: 前端 Optimistic UI 核心引擎與 API 請求佇列
-     * ==========================================================================
-     */
-    const RequestQueue = {
-      queue: [],
-      isProcessing: false,
-
-      enqueue: async function (fn) {
-        return new Promise(function (resolve, reject) {
-          RequestQueue.queue.push({ fn: fn, resolve: resolve, reject: reject });
-          RequestQueue.process();
-        });
-      },
-
-      process: async function () {
-        if (this.isProcessing || this.queue.length === 0) return;
-        this.isProcessing = true;
-        const task = this.queue.shift();
-
-        try {
-          const result = await task.fn();
-          task.resolve(result);
-        } catch (err) {
-          task.reject(err);
-        } finally {
-          this.isProcessing = false;
-          RequestQueue.process();
-        }
-      }
-    };
-
-    /**
-     * ==========================================================================
-     * Step 11: ViewSwitcher 視圖切換器 (支援 blog, article, record, proposals, editor, publish)
+     * ViewSwitcher 視圖切換器 (支援 blog, article, record, proposals, editor, publish)
      * ==========================================================================
      */
     const ViewSwitcher = {
@@ -1731,6 +1791,7 @@
           loadSingleArticle(param);
         }
 
+        updateSheetRowBadge();
         window.scrollTo({ top: 0, behavior: "smooth" });
         lucide.createIcons();
       }
@@ -1744,9 +1805,23 @@
       }
     }
 
+    function updateSheetRowBadge() {
+      const badge = document.getElementById("sheet-row-badge");
+      const text = document.getElementById("sheet-row-text");
+      const rowId = StateStore.getState("_rowId");
+      if (badge && text) {
+        if (rowId) {
+          badge.style.display = "inline-flex";
+          text.textContent = rowId;
+        } else {
+          badge.style.display = "none";
+        }
+      }
+    }
+
     /**
      * ==========================================================================
-     * Step 12: 全域 Modal 對話框與 ToastController
+     * 全域 Modal 對話框與 ToastController
      * ==========================================================================
      */
     const ModalController = {
@@ -1863,7 +1938,7 @@
 
     /**
      * ==========================================================================
-     * Step 18: 無縫切片串流音訊播放器 (SeamlessAudioPlayer) 核心實作
+     * 無縫切片串流音訊播放器 (SeamlessAudioPlayer) 核心實作
      * ==========================================================================
      */
     const SeamlessAudioPlayer = {
@@ -1876,7 +1951,7 @@
       isPlaying: false,
       playbackRate: 1.0,
       totalDurationSeconds: 0,
-      estimatedChunkDuration: 60, // 每個切片基準 60 秒
+      estimatedChunkDuration: 60,
       speeds: [1.0, 1.25, 1.5, 2.0],
 
       init: function () {
@@ -1977,10 +2052,8 @@
         if (pBar) pBar.style.width = Math.min(100, percent) + "%";
         if (pTime) pTime.textContent = this.formatTime(totalSec);
 
-        // 監聽完播率指標 (25%, 50%, 75%, 100%) (Step 19)
         AnalyticsTracker.checkAudioProgress(percent);
 
-        // 當前切片剩餘 3 秒時，預載下一段音訊
         const remaining = (this.currentAudio.duration || this.estimatedChunkDuration) - curSec;
         if (remaining <= 3 && (this.currentChunkIndex + 1) < this.chunks.length) {
           if (!this.nextAudio.src || this.nextAudio.src === "") {
@@ -1992,7 +2065,6 @@
       onChunkEnded: function () {
         if ((this.currentChunkIndex + 1) < this.chunks.length) {
           this.currentChunkIndex++;
-          // 無縫切換音訊物件
           const temp = this.currentAudio;
           this.currentAudio = this.nextAudio;
           this.nextAudio = temp;
@@ -2000,7 +2072,6 @@
           this.currentAudio.playbackRate = this.playbackRate;
           this.currentAudio.play();
 
-          // 預熱更下一個切片
           if ((this.currentChunkIndex + 1) < this.chunks.length) {
             this.prepareChunk(this.currentChunkIndex + 1, this.nextAudio);
           }
@@ -2065,7 +2136,7 @@
 
     /**
      * ==========================================================================
-     * Step 19: 成效數據追蹤埋點監聽器 (AnalyticsTracker)
+     * 成效數據追蹤埋點監聽器 (AnalyticsTracker)
      * ==========================================================================
      */
     const AnalyticsTracker = {
@@ -2080,10 +2151,7 @@
         this.hasTrackedReadComplete = false;
         this.progressFlags = { p25: false, p50: false, p75: false, p100: false };
 
-        // 1. 觸發點閱數 PV
         this.track("views");
-
-        // 2. 監聽滾動完讀率 (Scroll Completion 85%)
         this.setupScrollObserver();
       },
 
@@ -2138,13 +2206,12 @@
 
     /**
      * ==========================================================================
-     * Step 19: Google 登入 (GIS) 與讀者留言板互動實作
+     * Google 登入 (GIS) 與讀者留言板互動實作
      * ==========================================================================
      */
     function handleGoogleLoginResponse(response) {
       if (response && response.credential) {
         try {
-          // 解碼 JWT Payload
           const base64Url = response.credential.split(".")[1];
           const base64 = base64Url.replace(/-/g, "+").replace(/_/g, "/");
           const jsonPayload = decodeURIComponent(atob(base64).split("").map(function (c) {
@@ -2208,7 +2275,6 @@
         content: content
       };
 
-      // 樂觀更新留言 DOM
       appendSingleCommentToDom({
         user_name: user.name,
         user_avatar: user.avatar,
@@ -2266,7 +2332,7 @@
 
     /**
      * ==========================================================================
-     * Step 13 & Step 18: 獨立文章加載與渲染
+     * 獨立文章加載、Gemini 智能延伸閱讀推薦渲染
      * ==========================================================================
      */
     async function loadSingleArticle(postId) {
@@ -2276,6 +2342,8 @@
         '<div class="skeleton skeleton-text" style="width: 40%;"></div>' +
         '<div class="skeleton skeleton-text"></div>' +
         '<div class="skeleton skeleton-text"></div>';
+
+      document.getElementById("related-articles-container").style.display = "none";
 
       try {
         let post = null;
@@ -2296,7 +2364,6 @@
 
         StateStore.setState("activeReadingPost", post);
 
-        // 渲染文章主體 (黃山料式極致呼吸感)
         const dateStr = post.created_at ? new Date(post.created_at).toLocaleDateString("zh-TW") : "最新";
         const score = post.diagnostic_score || 95;
 
@@ -2326,19 +2393,15 @@
             '</a>' +
           '</div>';
 
-        // 啟動無縫音訊播放器
         SeamlessAudioPlayer.loadPlaylist(post.audio_files || []);
-
-        // 啟動埋點追蹤
         AnalyticsTracker.initForPost(post.id);
-
-        // 讀取互動數據
         loadPostAnalytics(post.id);
-
-        // 載入留言板
         loadPostComments(post.id);
-
         renderUserProfileBadge();
+
+        // 呼叫 Gemini 演算並加載延伸閱讀
+        loadGeminiRelatedArticles(post);
+
         lucide.createIcons();
       } catch (err) {
         contentElem.innerHTML = '<div class="empty-state"><p class="empty-state-title">文章讀取失敗：' + err.message + '</p></div>';
@@ -2373,6 +2436,60 @@
         '</div>';
     }
 
+    async function loadGeminiRelatedArticles(currentPost) {
+      const container = document.getElementById("related-articles-container");
+      const grid = document.getElementById("related-articles-grid");
+      const allPosts = StateStore.getState("allPosts") || [];
+
+      // 排除當前文章，若庫中無其他文章則不顯示
+      const candidates = allPosts.filter(function (p) { return p.id !== currentPost.id; });
+      if (candidates.length === 0) return;
+
+      container.style.display = "block";
+      grid.innerHTML = '<div style="font-size: 12px; color: var(--text-muted);"><i data-lucide="loader" style="width: 14px; height: 14px; animation: spin 1.5s linear infinite; vertical-align: middle;"></i> Gemini 正在演算最適延伸閱讀...</div>';
+      lucide.createIcons();
+
+      try {
+        const res = await callBackendApi("getRecommendedPosts", {
+          currentPost: { id: currentPost.id, title: currentPost.title, hook: currentPost.hook },
+          candidates: candidates.map(function (c) { return { id: c.id, title: c.title, hook: c.hook }; })
+        });
+
+        if (res.status === "success" && Array.isArray(res.data) && res.data.length > 0) {
+          grid.innerHTML = "";
+          res.data.forEach(function (rec) {
+            const card = document.createElement("div");
+            card.className = "related-card";
+            card.onclick = function () { ViewSwitcher.navigate("article", rec.id); };
+            card.innerHTML = 
+              '<div class="related-card-title">' + rec.title + '</div>' +
+              '<div class="related-card-reason"><i data-lucide="sparkles" style="width: 12px; height: 12px; margin-right: 4px;"></i>' + (rec.reason || "推薦閱讀精華") + '</div>';
+            grid.appendChild(card);
+          });
+          lucide.createIcons();
+        } else {
+          fallbackRenderRelatedPosts(candidates, grid);
+        }
+      } catch (e) {
+        fallbackRenderRelatedPosts(candidates, grid);
+      }
+    }
+
+    function fallbackRenderRelatedPosts(candidates, grid) {
+      grid.innerHTML = "";
+      const sliced = candidates.slice(0, 3);
+      sliced.forEach(function (rec) {
+        const card = document.createElement("div");
+        card.className = "related-card";
+        card.onclick = function () { ViewSwitcher.navigate("article", rec.id); };
+        card.innerHTML = 
+          '<div class="related-card-title">' + rec.title + '</div>' +
+          '<div class="related-card-reason">' + (rec.hook ? rec.hook.substring(0, 45) + "..." : "精彩延伸觀點") + '</div>';
+        grid.appendChild(card);
+      });
+      lucide.createIcons();
+    }
+
     async function loadPostAnalytics(postId) {
       try {
         const res = await callBackendApi("getAnalytics", { postId: postId });
@@ -2395,7 +2512,7 @@
 
     /**
      * ==========================================================================
-     * Step 13 & Step 14: 文章前台瀑布流、防抖搜尋與多維排序
+     * 部落格首頁流水、防抖搜尋與多維排序
      * ==========================================================================
      */
     function debounce(func, delay) {
@@ -2499,7 +2616,6 @@
         return;
       }
 
-      // 置頂最新焦點卡片
       const heroPost = posts[0];
       const heroCard = document.createElement("div");
       heroCard.className = "hero-feature-card";
@@ -2529,7 +2645,6 @@
 
       container.appendChild(heroCard);
 
-      // 歷史文章瀑布流網格
       if (posts.length > 1) {
         const gridTitle = document.createElement("h3");
         gridTitle.style.cssText = "font-size: 16px; font-weight: 700; margin: 28px 0 16px 0;";
@@ -2583,7 +2698,7 @@
 
     /**
      * ==========================================================================
-     * Step 13 & Step 16: 60 秒切片錄音控制器、波形動畫與 Drive 自動上傳
+     * 60 秒切片錄音、Gemini 逐字稿辨識與 Drive 自動上傳
      * ==========================================================================
      */
     let recordingTimerInterval = null;
@@ -2617,7 +2732,7 @@
           if (e.data && e.data.size > 0) {
             chunkCount++;
             const chunkIndex = chunkCount;
-            ToastController.show("正在上傳第 " + chunkIndex + " 段 60 秒切片至 Drive...", "info");
+            ToastController.show("正在上傳第 " + chunkIndex + " 段切片並由 AI 辨識逐字稿...", "info");
 
             const reader = new FileReader();
             reader.onloadend = async function () {
@@ -2627,14 +2742,30 @@
                   sessionId: StateStore.getState("sessionId"),
                   chunkIndex: chunkIndex,
                   base64Data: base64Data,
-                  mimeType: e.data.type || "audio/mp3"
+                  mimeType: e.data.type || "audio/mp3",
+                  _rowId: StateStore.getState("_rowId")
                 });
 
                 if (res.status === "success" && res.data) {
-                  const currentChunks = StateStore.getState("audioChunksList").concat([res.data]);
+                  // 1. 綁定更新後端回傳之試算表 rowId
+                  if (res.data._rowId) {
+                    StateStore.setState("_rowId", res.data._rowId);
+                    updateSheetRowBadge();
+                  }
+
+                  // 2. 存入音檔切片與逐字稿
+                  const currentChunks = StateStore.getState("audioChunksList").concat([res.data.chunk]);
+                  const currentTranscripts = StateStore.getState("transcriptsList").concat([{
+                    chunk_index: chunkIndex,
+                    transcript: res.data.transcript || "（語音已存入雲端，文字萃取中）",
+                    stream_url: res.data.chunk.stream_url
+                  }]);
+
                   StateStore.setState("audioChunksList", currentChunks);
-                  renderAudioChunks();
-                  ToastController.show("第 " + chunkIndex + " 段切片已安全儲存至 Google Drive", "success");
+                  StateStore.setState("transcriptsList", currentTranscripts);
+                  renderAudioChunksAndTranscripts();
+
+                  ToastController.show("第 " + chunkIndex + " 段切片與逐字稿已寫入試算表！", "success");
                 }
               } catch (uploadErr) {
                 ToastController.show("切片上傳異常: " + uploadErr.message, "error");
@@ -2726,20 +2857,39 @@
       }, 1000);
     }
 
-    function renderAudioChunks() {
+    function renderAudioChunksAndTranscripts() {
       const container = document.getElementById("audio-chunks-container");
+      const badge = document.getElementById("chunk-count-badge");
       container.innerHTML = "";
+
       const chunks = StateStore.getState("audioChunksList") || [];
+      const transcripts = StateStore.getState("transcriptsList") || [];
+
+      if (badge) badge.textContent = chunks.length + " 段切片";
 
       if (chunks.length === 0) {
-        container.innerHTML = '<span style="color: var(--text-muted); font-size: 13px;">暫無切片</span>';
+        container.innerHTML = '<span style="color: var(--text-muted); font-size: 13px;">暫無切片與逐字稿</span>';
         return;
       }
 
       chunks.forEach(function (chunk, idx) {
         const item = document.createElement("div");
-        item.className = "chunk-badge";
-        item.innerHTML = '<i data-lucide="music-2" style="width: 14px; height: 14px;"></i> 切片 ' + (idx + 1) + ' (' + (chunk.name || "chunk.mp3") + ')';
+        item.className = "chunk-card";
+        const tObj = transcripts[idx] || {};
+        const transcriptText = tObj.transcript || "辨識完成，音檔已存入 Google Drive";
+        const directUrl = chunk.stream_url || ("https://drive.google.com/uc?export=download&id=" + chunk.file_id);
+
+        item.innerHTML = 
+          '<div class="chunk-card-header">' +
+            '<span><i data-lucide="music-2" style="width: 14px; height: 14px; vertical-align: middle; margin-right: 4px;"></i> 第 ' + (idx + 1) + ' 分鐘切片音檔 (' + (chunk.name || "chunk.mp3") + ')</span>' +
+            '<a href="' + directUrl + '" target="_blank" class="chunk-link-tag">' +
+              '<i data-lucide="external-link" style="width: 11px; height: 11px;"></i> 雲端直連試聽' +
+            '</a>' +
+          '</div>' +
+          '<div class="chunk-transcript-box">' +
+            '<strong>每分鐘語音逐字稿：</strong>' + transcriptText +
+          '</div>';
+
         container.appendChild(item);
       });
       lucide.createIcons();
@@ -2747,29 +2897,37 @@
 
     /**
      * ==========================================================================
-     * Step 15 & Step 17: 階段一提案選題與階段二極致呼吸感全文產出
+     * 階段一提案選題、試算表紀錄與階段二極致呼吸感全文產出
      * ==========================================================================
      */
     async function requestProposalsFromAudio() {
-      ToastController.show("Gemini 正在依陳修平 7x11 爆款矩陣產出 20 組提案...", "info");
+      ToastController.show("Gemini 正在透過金鑰輪調產出 20 組策略提案...", "info");
       const container = document.getElementById("proposals-container");
       container.innerHTML = 
         '<div style="text-align: center; padding: 40px; color: var(--text-muted);">' +
           '<i data-lucide="loader" style="width: 24px; height: 24px; animation: spin 1.5s linear infinite; margin-bottom: 8px;"></i>' +
-          '<p>正在萃取 20 組策略提案，請稍候...</p>' +
+          '<p>正在萃取 20 組策略提案並同步登記至試算表格，請稍候...</p>' +
         '</div>';
       lucide.createIcons();
 
       try {
         const res = await callBackendApi("generateProposals", {
           sessionId: StateStore.getState("sessionId"),
-          audioChunks: StateStore.getState("audioChunksList")
+          _rowId: StateStore.getState("_rowId"),
+          audioChunks: StateStore.getState("audioChunksList"),
+          transcripts: StateStore.getState("transcriptsList")
         });
 
         if (res.status === "success" && res.data) {
-          StateStore.setState("proposalsList", res.data);
-          renderProposalsList(res.data);
-          ToastController.show("已產出 20 組提案", "success");
+          if (res.data._rowId) {
+            StateStore.setState("_rowId", res.data._rowId);
+            updateSheetRowBadge();
+          }
+
+          const proposals = res.data.proposals || res.data;
+          StateStore.setState("proposalsList", proposals);
+          renderProposalsList(proposals);
+          ToastController.show("已產出 20 組提案並記錄至試算表！", "success");
         } else {
           container.innerHTML = '<div style="text-align: center; padding: 40px; color: #D9383A;">產生提案失敗：' + (res.message || "未知錯誤") + '</div>';
         }
@@ -2811,9 +2969,10 @@
       lucide.createIcons();
     }
 
-    function selectProposal(index) {
+    async function selectProposal(index) {
       const proposals = StateStore.getState("proposalsList");
-      StateStore.setState("selectedProposal", proposals[index]);
+      const selected = proposals[index];
+      StateStore.setState("selectedProposal", selected);
 
       const radios = document.getElementsByName("proposal_radio");
       const cards = document.querySelectorAll(".proposal-card");
@@ -2829,6 +2988,16 @@
       });
 
       document.getElementById("btn-generate-article").classList.remove("btn-disabled");
+
+      // 即時記錄所選擇的標題選項到試算表
+      try {
+        await callBackendApi("recordSelectedProposal", {
+          _rowId: StateStore.getState("_rowId"),
+          selectedProposal: selected
+        });
+      } catch (e) {
+        console.warn("選題同步試算表失敗", e);
+      }
     }
 
     async function generateFullArticleAction() {
@@ -2838,18 +3007,25 @@
         return;
       }
 
-      ToastController.show("Gemini 正在撰寫全文與 100 分診斷表...", "info");
+      ToastController.show("Gemini 正在撰寫全文 (支援輪調續寫) 並同步試算表...", "info");
 
       try {
         const res = await callBackendApi("generateFullArticle", {
+          _rowId: StateStore.getState("_rowId"),
           selectedProposal: selected,
-          audioChunks: StateStore.getState("audioChunksList")
+          audioChunks: StateStore.getState("audioChunksList"),
+          transcripts: StateStore.getState("transcriptsList")
         });
 
         if (res.status === "success" && res.data) {
-          const articleData = res.data;
+          if (res.data._rowId) {
+            StateStore.setState("_rowId", res.data._rowId);
+            updateSheetRowBadge();
+          }
+
+          const articleData = res.data.article || res.data;
           const postObj = {
-            id: "post_" + new Date().getTime(),
+            id: articleData.id || ("post_" + new Date().getTime()),
             title: articleData.title,
             hook: articleData.hook,
             content_html: articleData.content_html,
@@ -2865,7 +3041,7 @@
           document.getElementById("post-preview-container").innerHTML = postObj.content_html;
           updateWordCountDisplay(postObj.content_html);
 
-          ToastController.show("全文撰寫完成，已載入編輯器", "success");
+          ToastController.show("全文撰寫完成！已載入編輯器並同步試算表儲存格", "success");
           ViewSwitcher.navigate("editor");
         } else {
           ToastController.show("產生全文失敗: " + res.message, "error");
@@ -2875,14 +3051,58 @@
       }
     }
 
-    function handleTitleInput(val) { StateStore.updatePostField("title", val); }
-    function handleHookInput(val) { StateStore.updatePostField("hook", val); }
+    function handleTitleInput(val) { 
+      StateStore.updatePostField("title", val); 
+      triggerAutoSyncDebounced();
+    }
+    function handleHookInput(val) { 
+      StateStore.updatePostField("hook", val); 
+      triggerAutoSyncDebounced();
+    }
     function handleHtmlInput(val) {
       StateStore.updatePostField("content_html", val);
       document.getElementById("post-preview-container").innerHTML = val;
       updateWordCountDisplay(val);
+      triggerAutoSyncDebounced();
     }
-    function handleScoreInput(val) { StateStore.updatePostField("diagnostic_score", Number(val) || 95); }
+    function handleScoreInput(val) { 
+      StateStore.updatePostField("diagnostic_score", Number(val) || 95); 
+      triggerAutoSyncDebounced();
+    }
+
+    const triggerAutoSyncDebounced = debounce(function () {
+      syncArticleToSpreadsheetManual(true);
+    }, 1500);
+
+    async function syncArticleToSpreadsheetManual(silent) {
+      const post = StateStore.getState("currentPost");
+      const rowId = StateStore.getState("_rowId");
+
+      if (!post || (!post.title && !post.content_html)) return;
+
+      try {
+        const res = await callBackendApi("updatePost", {
+          _rowId: rowId,
+          id: post.id,
+          postData: {
+            title: post.title,
+            hook: post.hook,
+            content_html: post.content_html,
+            diagnostic_score: post.diagnostic_score
+          }
+        });
+
+        if (res.status === "success") {
+          if (res.data && res.data._rowId) {
+            StateStore.setState("_rowId", res.data._rowId);
+            updateSheetRowBadge();
+          }
+          if (!silent) ToastController.show("已成功儲存至試算表對應列！", "success");
+        }
+      } catch (e) {
+        if (!silent) ToastController.show("試算表同步異常: " + e.message, "error");
+      }
+    }
 
     function getCleanText(htmlStr) {
       const tmp = document.createElement("div");
@@ -2932,7 +3152,7 @@
 
     /**
      * ==========================================================================
-     * Step 16: 發布至 GitHub 倉庫根目錄與試算表寫入
+     * 發布至 GitHub 倉庫根目錄、更新獨立文章網頁與 posts.json 索引
      * ==========================================================================
      */
     async function publishToGitHubAction() {
@@ -2946,27 +3166,29 @@
       }
 
       ModalController.open({
-        title: "確認發布至 GitHub",
-        content: "確定要將《" + title + "》發布至 GitHub 倉庫根目錄並更新 posts.json 與試算表嗎？",
+        title: "確認發布至 GitHub 獨立網頁",
+        content: "確定要將《" + title + "》發布為 GitHub 獨立文章網頁並更新首頁文章流水嗎？",
         onConfirm: async function () {
-          ToastController.show("正在推播檔案至 GitHub 倉庫根目錄...", "info");
+          ToastController.show("正在生成內嵌完整樣式之獨立 HTML 並推播至 GitHub...", "info");
           const publishBtn = document.getElementById("btn-publish-github");
           publishBtn.classList.add("btn-disabled");
 
           try {
             const res = await callBackendApi("publishToGitHub", {
+              _rowId: StateStore.getState("_rowId"),
               postData: {
                 id: post.id || ("post_" + new Date().getTime()),
                 title: title,
                 hook: post.hook || "",
                 content_html: contentHtml,
                 audio_files: StateStore.getState("audioChunksList"),
+                transcripts: StateStore.getState("transcriptsList"),
                 diagnostic_score: post.diagnostic_score || 95
               }
             });
 
             if (res.status === "success") {
-              ToastController.show("文章已成功發布至 GitHub！", "success");
+              ToastController.show("文章已成功發布至 GitHub 獨立網頁！", "success");
               StateStore.clear();
               setTimeout(function () {
                 ViewSwitcher.navigate("blog");
@@ -2986,7 +3208,7 @@
     function confirmClearDraft() {
       ModalController.open({
         title: "清除本機草稿",
-        content: "確定要清空所有錄音切片與編輯中草稿嗎？此操作無法復原。",
+        content: "確定要清空所有錄音切片、逐字稿與編輯中草稿嗎？此操作無法復原。",
         onConfirm: function () {
           StateStore.clear();
           document.getElementById("post-title-input").value = "";
@@ -2994,8 +3216,9 @@
           document.getElementById("post-content-html-input").value = "";
           document.getElementById("post-preview-container").innerHTML = "<p>尚未生成文章內文。</p>";
           updateWordCountDisplay("");
-          renderAudioChunks();
+          renderAudioChunksAndTranscripts();
           renderProposalsList([]);
+          updateSheetRowBadge();
           ToastController.show("草稿已成功清除", "success");
           ViewSwitcher.navigate("record");
         }
@@ -3017,7 +3240,7 @@
       lucide.createIcons();
 
       EventHub.on("state:restored", function (savedState) {
-        renderAudioChunks();
+        renderAudioChunksAndTranscripts();
         if (savedState.proposalsList && savedState.proposalsList.length > 0) {
           renderProposalsList(savedState.proposalsList);
         }
@@ -3029,6 +3252,7 @@
           document.getElementById("post-preview-container").innerHTML = savedState.currentPost.content_html || "<p>尚未生成文章內文。</p>";
           updateWordCountDisplay(savedState.currentPost.content_html || "");
         }
+        updateSheetRowBadge();
         renderUserProfileBadge();
       });
     });
