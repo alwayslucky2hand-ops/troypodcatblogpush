@@ -1679,9 +1679,9 @@
     STORAGE_KEY: "TROY_AI_BLOG_STATE_V6",
     state: {
       sessionId: "session_" + new Date().getTime(),
-      _rowId: null, // 試算表對應列號生死線
+      _rowId: null,
       audioChunksList: [],
-      liveTranscriptText: "", // Google 原生 Web Speech 即時辨識全文
+      liveTranscriptText: "",
       proposalsList: [],
       selectedProposal: null,
       currentPost: {
@@ -1859,7 +1859,7 @@
 
   /**
    * ==========================================================================
-   * ViewSwitcher 視圖切換器 (支援 blog, article, record, proposals, editor, publish)
+   * ViewSwitcher 視圖切換器 (修復斜線參數分割漏洞，徹底根治「找不到指定文章」)
    * ==========================================================================
    */
   const ViewSwitcher = {
@@ -1876,15 +1876,25 @@
     init: function () {
       window.addEventListener("hashchange", function () {
         const rawHash = window.location.hash.replace("#", "") || "record";
-        const parts = rawHash.split("/");
-        const routeName = parts[0];
-        const routeParam = parts || null;
+        let routeName = rawHash;
+        let routeParam = null;
+        const slashIdx = rawHash.indexOf("/");
+        if (slashIdx !== -1) {
+          routeName = rawHash.substring(0, slashIdx);
+          routeParam = rawHash.substring(slashIdx + 1);
+        }
         ViewSwitcher.render(routeName, routeParam);
       });
 
       const rawHash = window.location.hash.replace("#", "") || "record";
-      const parts = rawHash.split("/");
-      this.render(parts[0], parts || null);
+      let routeName = rawHash;
+      let routeParam = null;
+      const slashIdx = rawHash.indexOf("/");
+      if (slashIdx !== -1) {
+        routeName = rawHash.substring(0, slashIdx);
+        routeParam = rawHash.substring(slashIdx + 1);
+      }
+      this.render(routeName, routeParam);
     },
 
     navigate: function (routeName, param) {
@@ -2000,6 +2010,7 @@
       this.titleElem.textContent = options.title || "提示";
       this.bodyElem.innerHTML = options.content || "";
       this.onConfirmCallback = options.onConfirm || null;
+      this.confirmBtn.style.display = options.hideConfirm ? "none" : "inline-flex";
       this.backdrop.classList.add("open");
       if (window.lucide) lucide.createIcons();
     },
@@ -2116,8 +2127,8 @@
 
   /**
    * ==========================================================================
-   * 核心突破：Google 原生即時語音轉文字「自癒式連續監聽機制」
-   * 徹底破除 Chrome 60 秒強迫斷線限制，支援長時無縫辨識！
+   * 需求 1 加強：Google 語音即時轉文字「防斷訊無縫收音引擎」
+   * 解決收音中停頓、換氣導致文字跑不出來的問題！
    * ==========================================================================
    */
   let speechRecognizer = null;
@@ -2146,7 +2157,7 @@
         '</button>' +
       '</div>' +
       '<textarea class="textarea-field" id="live-transcript-editor" style="min-height: 140px; font-size: 14px; line-height: 1.8;" placeholder="點擊「開始錄音」後對著麥克風說話，Google 雲端語音辨識技術將即時打字在此處，您可隨時在此修正錯別字..."></textarea>' +
-      '<div class="form-hint" id="live-transcript-hint">目前已辨識：0 字 (錄音結束時將自動同步寫入試算表對應儲存格)</div>';
+      '<div class="form-hint" id="live-transcript-hint">目前已辨識：0 字 (Google 語音即時串流中)</div>';
 
     const logContainer = parent.querySelector(".log-terminal-container");
     if (logContainer && logContainer.parentNode === parent) {
@@ -2157,20 +2168,15 @@
     if (window.lucide) lucide.createIcons();
   }
 
-  /**
-   * 關鍵演算法：安全自癒啟動語音辨識 (Self-Healing Speech Recognition)
-   * 徹底克服 Chrome 60 秒 Timeout 導致死機之問題
-   */
   function startSpeechRecognitionSafe() {
     if (!isSpeechActive) return;
 
     const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
     if (!SpeechRecognition) {
-      addExecutionLog("瀏覽器未支援 Web Speech API，建議使用 Chrome 體驗 Google 即時語音辨識", "warn");
+      addExecutionLog("瀏覽器未支援 Web Speech API，建議使用 Chrome 瀏覽器", "warn");
       return;
     }
 
-    // 乾淨釋放舊有實例，防止記憶體洩漏與 InvalidStateError
     if (speechRecognizer) {
       try {
         speechRecognizer.onresult = null;
@@ -2185,15 +2191,16 @@
     rec.lang = "zh-TW";
     rec.continuous = true;
     rec.interimResults = true;
-    rec.maxAlternatives = 1;
+    rec.maxAlternatives = 3;
 
     rec.onresult = function (event) {
       let interimStr = "";
       for (let i = event.resultIndex; i < event.results.length; ++i) {
+        const trans = event.results[i][0].transcript;
         if (event.results[i].isFinal) {
-          accumulatedFinalTranscript += event.results[i][0].transcript;
+          accumulatedFinalTranscript += trans;
         } else {
-          interimStr += event.results[i][0].transcript;
+          interimStr += trans;
         }
       }
 
@@ -2216,13 +2223,13 @@
     };
 
     rec.onend = function () {
-      // Chrome 在 60 秒後會自動結束連線，若錄音仍在進行，延遲 300ms 安全重啟新連線
+      // Chrome 在說話停頓或 60 秒到期時會關閉連線，若錄音仍在進行，立即重啟以維持收音不斷線
       if (isSpeechActive) {
         setTimeout(function () {
           if (isSpeechActive) {
             startSpeechRecognitionSafe();
           }
-        }, 300);
+        }, 150);
       }
     };
 
@@ -2232,7 +2239,7 @@
     } catch (err) {
       setTimeout(function () {
         if (isSpeechActive) startSpeechRecognitionSafe();
-      }, 500);
+      }, 300);
     }
   }
 
@@ -2270,17 +2277,16 @@
 
   /**
    * ==========================================================================
-   * 錄音控制、60 秒雲端硬碟切片打包 (嚴格純 Base64 直傳，100% 成功入庫)
+   * 音訊 1 秒排隊佇列 + 60 秒定時封裝上傳技術 (無損 Base64 截取，徹底終結解碼錯誤)
    * ==========================================================================
    */
   let recordingTimerInterval = null;
-  let chunkRotationTimer = null;
   let recordingSeconds = 0;
   let activeMediaRecorder = null;
   let activeAudioStream = null;
   let isRecordingPaused = false;
-  let isManuallyStopping = false;
   let chunkCounter = 0;
+  let currentChunkBlobs = [];
   let activeUploadPromises = [];
 
   async function startRecording() {
@@ -2299,22 +2305,20 @@
       activeAudioStream = stream;
       recordingSeconds = 0;
       isRecordingPaused = false;
-      isManuallyStopping = false;
       chunkCounter = StateStore.getState("audioChunksList").length;
+      currentChunkBlobs = [];
       activeUploadPromises = [];
       accumulatedFinalTranscript = "";
 
       const editor = document.getElementById("live-transcript-editor");
       if (editor) editor.value = "";
 
-      // 啟動「自癒式連續語音辨識」
       isSpeechActive = true;
       startSpeechRecognitionSafe();
-      addExecutionLog("Google 原生語音辨識引擎已啟動 (自癒連續監聽模式已就緒)", "success");
+      addExecutionLog("Google 原生語音辨識已就緒 (前端無縫連續監聽模式)", "success");
 
-      // 控制按鈕狀態
       document.getElementById("recording-status-badge").style.display = "inline-flex";
-      document.getElementById("recording-status-text").textContent = "錄音與語音轉文字進行中";
+      document.getElementById("recording-status-text").textContent = "錄音中 (每 60 秒自動封裝雲端檔案)";
       document.getElementById("waveform-visualizer").classList.add("active");
 
       document.getElementById("btn-start-record").classList.add("btn-disabled");
@@ -2323,9 +2327,6 @@
       document.getElementById("btn-proceed-proposals").classList.add("btn-disabled");
       updatePauseButtonUi(false);
 
-      startTimer();
-
-      // 第一軌：錄音啟動，即時建立試算表草稿紀錄列
       const currentSessionId = StateStore.getState("sessionId");
       let currentRowId = StateStore.getState("_rowId");
 
@@ -2345,95 +2346,102 @@
         }
       }
 
-      // 第二軌：音訊每 60 秒自動打包直傳 Google Drive
-      startNewChunkRecordingInstance();
+      const recorder = new MediaRecorder(activeAudioStream, { mimeType: "audio/webm" });
+      recorder.ondataavailable = function (e) {
+        if (e.data && e.data.size > 0) {
+          currentChunkBlobs.push(e.data);
+        }
+      };
+      recorder.start(1000);
+      activeMediaRecorder = recorder;
 
-      addExecutionLog("雙軌排程已就緒：錄音中每 60 秒自動打包上傳 Google Drive", "info");
-      ToastController.show("開始錄音，語音即時轉文字中...", "info");
+      startTimer();
+
+      addExecutionLog("音訊串流排隊機制已啟動：每秒暫存於佇列，滿 60 秒立即封裝直存 Drive", "info");
+      ToastController.show("開始錄音，每 60 秒將自動在雲端硬碟建立音檔！", "info");
     } catch (err) {
-      addExecutionLog("錄音初始化流程異常: " + err.message, "error");
+      addExecutionLog("錄音啟動流程異常: " + err.message, "error");
       ToastController.show("錄音啟動異常: " + err.message, "error");
     }
   }
 
-  function startNewChunkRecordingInstance() {
-    if (!activeAudioStream || isManuallyStopping) return;
+  function packageAndUploadCurrentChunk(isFinal) {
+    if (currentChunkBlobs.length === 0) return null;
 
-    let localChunks = [];
-    const recorder = new MediaRecorder(activeAudioStream, { mimeType: "audio/webm" });
+    chunkCounter++;
+    const thisChunkIdx = chunkCounter;
+    const chunkBlob = new Blob(currentChunkBlobs, { type: "audio/webm" });
+    currentChunkBlobs = [];
 
-    recorder.ondataavailable = function (e) {
-      if (e.data && e.data.size > 0) {
-        localChunks.push(e.data);
-      }
-    };
+    const sizeKb = (chunkBlob.size / 1024).toFixed(1);
+    const chunkLabel = isFinal ? ("第 " + thisChunkIdx + " 段 (最終切片)") : ("第 " + thisChunkIdx + " 分鐘音檔");
 
-    recorder.onstop = function () {
-      if (localChunks.length === 0) return;
-      chunkCounter++;
-      const thisChunkIdx = chunkCounter;
-      const completeBlob = new Blob(localChunks, { type: "audio/webm" });
-      const sizeKb = (completeBlob.size / 1024).toFixed(1);
+    addExecutionLog(chunkLabel + " 已封裝 (" + sizeKb + " KB)，正在直傳 Google Drive 建立實體檔案...", "info");
 
-      addExecutionLog("第 " + thisChunkIdx + " 分鐘音檔已打包 (" + sizeKb + " KB)，正在直傳 Google Drive...", "info");
+    const uploadTask = new Promise(function (resolve) {
+      const reader = new FileReader();
+      reader.onloadend = async function () {
+        const rawResult = String(reader.result || "");
+        const commaPos = rawResult.indexOf(",");
+        const pureBase64 = (commaPos !== -1 ? rawResult.substring(commaPos + 1) : rawResult).trim().replace(/[\r\n\s]/g, "");
 
-      const uploadTask = new Promise(function (resolve) {
-        const reader = new FileReader();
-        reader.onloadend = async function () {
-          const rawResult = String(reader.result || "");
-          // 關鍵修復：絕對純淨提取逗號後的純 Base64 字串，徹底消除非法字元
-          let base64Pure = rawResult;
-          if (rawResult.indexOf(",") !== -1) {
-            base64Pure = rawResult.split(",");
-          }
-          base64Pure = String(base64Pure || "").trim().replace(/[\r\n\s]/g, "");
+        try {
+          const res = await callBackendApi("saveAudioChunk", {
+            sessionId: StateStore.getState("sessionId"),
+            chunkIndex: thisChunkIdx,
+            base64Data: pureBase64,
+            mimeType: "audio/webm",
+            _rowId: StateStore.getState("_rowId")
+          });
 
-          try {
-            const res = await callBackendApi("saveAudioChunk", {
-              sessionId: StateStore.getState("sessionId"),
-              chunkIndex: thisChunkIdx,
-              base64Data: base64Pure,
-              mimeType: "audio/webm",
-              _rowId: StateStore.getState("_rowId")
-            });
-
-            if (res && res.status === "success" && res.data) {
-              if (res.data._rowId) {
-                StateStore.setState("_rowId", res.data._rowId);
-                updateSheetRowBadge();
-              }
-
-              const currentChunks = StateStore.getState("audioChunksList").concat([res.data.chunk]);
-              StateStore.setState("audioChunksList", currentChunks);
-              renderAudioChunksAndTranscripts();
-
-              addExecutionLog("第 " + thisChunkIdx + " 分鐘音檔已成功存入 Drive (" + (res.data.chunk.name || "chunk.webm") + ")", "success");
-              ToastController.show("第 " + thisChunkIdx + " 段音檔已存入雲端硬碟！", "success");
-            } else {
-              addExecutionLog("第 " + thisChunkIdx + " 分鐘音檔儲存回應警示: " + (res ? res.message : "無回應"), "warn");
+          if (res && res.status === "success" && res.data) {
+            if (res.data._rowId) {
+              StateStore.setState("_rowId", res.data._rowId);
+              updateSheetRowBadge();
             }
-          } catch (uploadErr) {
-            addExecutionLog("第 " + thisChunkIdx + " 分鐘音檔上傳異常: " + uploadErr.message, "error");
-          } finally {
-            resolve();
+
+            const currentChunks = StateStore.getState("audioChunksList").concat([res.data.chunk]);
+            StateStore.setState("audioChunksList", currentChunks);
+            renderAudioChunksAndTranscripts();
+
+            addExecutionLog(chunkLabel + " 已成功在雲端硬碟建立檔案 (" + (res.data.chunk.name || "chunk.webm") + ")", "success");
+            ToastController.show(chunkLabel + " 雲端硬碟建檔成功！", "success");
+          } else {
+            addExecutionLog(chunkLabel + " 雲端建檔回應警示: " + (res ? res.message : "未知錯誤"), "warn");
           }
-        };
-        reader.readAsDataURL(completeBlob);
-      });
+        } catch (uploadErr) {
+          addExecutionLog(chunkLabel + " 上傳異常: " + uploadErr.message, "error");
+        } finally {
+          resolve();
+        }
+      };
+      reader.readAsDataURL(chunkBlob);
+    });
 
-      activeUploadPromises.push(uploadTask);
-    };
+    activeUploadPromises.push(uploadTask);
+    return uploadTask;
+  }
 
-    recorder.start();
-    activeMediaRecorder = recorder;
+  function startTimer() {
+    const timerText = document.getElementById("timer-text");
+    const chunkInfo = document.getElementById("chunk-info-text");
 
-    // 每 60 秒輪替打包存檔
-    chunkRotationTimer = setTimeout(function () {
-      if (activeMediaRecorder && activeMediaRecorder.state === "recording" && !isManuallyStopping && !isRecordingPaused) {
-        activeMediaRecorder.stop();
-        startNewChunkRecordingInstance();
+    recordingTimerInterval = setInterval(function () {
+      if (isRecordingPaused) return;
+
+      recordingSeconds++;
+      const mins = String(Math.floor(recordingSeconds / 60)).padStart(2, "0");
+      const secs = String(recordingSeconds % 60).padStart(2, "0");
+      timerText.textContent = mins + ":" + secs;
+
+      const currentChunkNumber = Math.floor(recordingSeconds / 60) + 1;
+      const secondsInCurrentChunk = recordingSeconds % 60;
+      chunkInfo.textContent = "第 " + currentChunkNumber + " 分鐘音訊排隊中 (本段已錄 " + secondsInCurrentChunk + " / 60 秒)";
+
+      if (recordingSeconds > 0 && recordingSeconds % 60 === 0) {
+        packageAndUploadCurrentChunk(false);
       }
-    }, 60000);
+    }, 1000);
   }
 
   function togglePauseRecording() {
@@ -2442,8 +2450,6 @@
     if (!isRecordingPaused) {
       activeMediaRecorder.pause();
       isRecordingPaused = true;
-      clearInterval(recordingTimerInterval);
-      clearTimeout(chunkRotationTimer);
       isSpeechActive = false;
       if (speechRecognizer) {
         try { speechRecognizer.stop(); } catch (e) {}
@@ -2456,22 +2462,13 @@
     } else {
       activeMediaRecorder.resume();
       isRecordingPaused = false;
-      startTimer();
       isSpeechActive = true;
       startSpeechRecognitionSafe();
-      document.getElementById("recording-status-text").textContent = "錄音進行中";
+      document.getElementById("recording-status-text").textContent = "錄音中 (每 60 秒自動封裝雲端檔案)";
       document.getElementById("waveform-visualizer").classList.add("active");
       updatePauseButtonUi(false);
       addExecutionLog("使用者繼續錄音", "info");
       ToastController.show("錄音已繼續", "info");
-
-      const remainingSec = 60 - (recordingSeconds % 60);
-      chunkRotationTimer = setTimeout(function () {
-        if (activeMediaRecorder && activeMediaRecorder.state === "recording" && !isManuallyStopping && !isRecordingPaused) {
-          activeMediaRecorder.stop();
-          startNewChunkRecordingInstance();
-        }
-      }, remainingSec * 1000);
     }
   }
 
@@ -2488,15 +2485,10 @@
     if (window.lucide) lucide.createIcons();
   }
 
-  /**
-   * 停止錄音：結束最後音訊切片並強制等待上傳 Promise 全數交付 Drive
-   */
   async function stopRecordingAndFinalize() {
-    addExecutionLog("使用者按下停止錄音：正在封裝最後切片並等待雲端存檔...", "info");
-    isManuallyStopping = true;
-    isSpeechActive = false;
-    clearTimeout(chunkRotationTimer);
+    addExecutionLog("使用者按下停止錄音：正在封裝最後排隊音訊並建檔至雲端...", "info");
     clearInterval(recordingTimerInterval);
+    isSpeechActive = false;
 
     if (speechRecognizer) {
       try {
@@ -2504,6 +2496,7 @@
         speechRecognizer.stop();
       } catch (e) {}
     }
+
     if (activeMediaRecorder && activeMediaRecorder.state !== "inactive") {
       activeMediaRecorder.stop();
     }
@@ -2513,6 +2506,8 @@
 
     isRecordingPaused = false;
 
+    packageAndUploadCurrentChunk(true);
+
     document.getElementById("recording-status-badge").style.display = "none";
     document.getElementById("waveform-visualizer").classList.remove("active");
     document.getElementById("btn-start-record").classList.remove("btn-disabled");
@@ -2520,46 +2515,28 @@
     document.getElementById("btn-stop-record").classList.add("btn-disabled");
     updatePauseButtonUi(false);
 
-    // 寬裕等待非同步 FileReader 與 Drive 上傳完成
     await new Promise(function (resolve) { setTimeout(resolve, 1500); });
     await Promise.all(activeUploadPromises);
 
-    // 自動將最終逐字稿文字寫入試算表 Col 9
     await saveTranscriptToSheetManual();
 
     const chunkCount = StateStore.getState("audioChunksList").length;
     StateStore.setState("isAudioFinalized", true);
 
-    addExecutionLog("雙軌存檔完成！共 " + chunkCount + " 段音檔存入 Drive，逐字稿已全部寫入試算表儲存格！", "success");
-    addExecutionLog("系統已就緒，請點選「一鍵產出 20 組策略提案」開始讓 Gemini 閱讀分析。", "info");
+    addExecutionLog("雙軌存檔完成！共 " + chunkCount + " 段音檔成功建檔至 Drive，逐字稿已寫入試算表儲存格！", "success");
+    addExecutionLog("系統已就緒，請點選「一鍵產出 20 組策略提案」開始讓 AI 精準閱讀您的逐字稿。", "info");
 
     const proceedBtn = document.getElementById("btn-proceed-proposals");
     if (proceedBtn) {
       proceedBtn.classList.remove("btn-disabled");
     }
 
-    ToastController.show("錄音音檔與逐字稿已全數就緒！", "success");
+    ToastController.show("錄音音檔已全部在雲端建立，逐字稿就緒！", "success");
   }
 
   function proceedToProposalsView() {
     ViewSwitcher.navigate("proposals");
     requestProposalsFromAudio();
-  }
-
-  function startTimer() {
-    const timerText = document.getElementById("timer-text");
-    const chunkInfo = document.getElementById("chunk-info-text");
-
-    recordingTimerInterval = setInterval(function () {
-      recordingSeconds++;
-      const mins = String(Math.floor(recordingSeconds / 60)).padStart(2, "0");
-      const secs = String(recordingSeconds % 60).padStart(2, "0");
-      timerText.textContent = mins + ":" + secs;
-
-      const currentChunkNumber = Math.floor(recordingSeconds / 60) + 1;
-      const secondsInCurrentChunk = recordingSeconds % 60;
-      chunkInfo.textContent = "正在錄製第 " + currentChunkNumber + " 段切片 (本段已錄 " + secondsInCurrentChunk + " / 60 秒)";
-    }, 1000);
   }
 
   function renderAudioChunksAndTranscripts() {
@@ -2588,7 +2565,7 @@
           '</a>' +
         '</div>' +
         '<div style="font-size: 12px; color: var(--text-muted);">' +
-          '檔案大小：' + (chunk.size ? (chunk.size / 1024).toFixed(1) + ' KB' : '已就緒') + ' ｜ Google Drive 雲端已同步' +
+          '檔案大小：' + (chunk.size ? (chunk.size / 1024).toFixed(1) + ' KB' : '已就緒') + ' ｜ Google Drive 雲端實體檔案已建立' +
         '</div>';
 
       container.appendChild(item);
@@ -2598,7 +2575,7 @@
 
   /**
    * ==========================================================================
-   * 階段一：直接將大串逐字稿文字送給 Gemini 深度語意分析產出 20 組提案
+   * 需求 3 加強：針對前端編輯器中的「真實逐字稿」萃取主題並產出 20 組提案
    * ==========================================================================
    */
   async function requestProposalsFromAudio() {
@@ -2610,14 +2587,14 @@
       return;
     }
 
-    addExecutionLog("正在將整串逐字稿文字 (" + rawTranscript.length + " 字) 送交 Gemini 進行陳修平 7x11 爆款矩陣分析...", "info");
-    ToastController.show("Gemini 正在分析逐字稿觀點並產出 20 組策略提案...", "info");
+    addExecutionLog("正在閱讀分析您的真實逐字稿純文字 (" + rawTranscript.length + " 字)，產出專屬 7x11 策略提案...", "info");
+    ToastController.show("AI 正在深度閱讀逐字稿觀點並產出 20 組策略提案...", "info");
 
     const container = document.getElementById("proposals-container");
     container.innerHTML = 
       '<div style="text-align: center; padding: 40px; color: var(--text-muted);">' +
         '<i data-lucide="loader" style="width: 24px; height: 24px; animation: spin 1.5s linear infinite; margin-bottom: 8px;"></i>' +
-        '<p>Gemini 正在萃取逐字稿精華論點並產出 20 組策略提案，請稍候...</p>' +
+        '<p>AI 正在閱讀逐字稿核心論點並產出 20 組專屬提案，請稍候...</p>' +
       '</div>';
     if (window.lucide) lucide.createIcons();
 
@@ -2714,6 +2691,9 @@
     }
   }
 
+  /**
+   * 需求 3 加強：確認選題後，針對「選定標題」與「真實逐字稿內容」轉換成呼吸感全文
+   */
   async function generateFullArticleAction() {
     const selected = StateStore.getState("selectedProposal");
     if (!selected) {
@@ -2724,8 +2704,8 @@
     const editor = document.getElementById("live-transcript-editor");
     const rawTranscript = (editor ? editor.value : StateStore.getState("liveTranscriptText") || "").trim();
 
-    addExecutionLog("啟動階段二：依據選定提案《" + selected.title + "》撰寫 800-1500 字極致呼吸感全文...", "info");
-    ToastController.show("Gemini 正在撰寫全文並同步試算表...", "info");
+    addExecutionLog("啟動階段二：依據選定標題《" + selected.title + "》與您的真實逐字稿內容撰寫極致呼吸感全文...", "info");
+    ToastController.show("AI 正在將您的逐字稿觀點轉換為正式文章...", "info");
 
     try {
       const res = await callBackendApi("generateFullArticle", {
@@ -2758,7 +2738,7 @@
         document.getElementById("post-preview-container").innerHTML = postObj.content_html;
         updateWordCountDisplay(postObj.content_html);
 
-        addExecutionLog("全文撰寫完成！標題、Hook、HTML內文已寫入試算表對應列", "success");
+        addExecutionLog("全文撰寫完成！標題、Hook、HTML內文已成功載入編輯器", "success");
         ToastController.show("全文撰寫完成！已載入編輯器並同步試算表儲存格", "success");
         ViewSwitcher.navigate("editor");
       } else {
@@ -2833,56 +2813,70 @@
     return (tmp.textContent || tmp.innerText || "").trim();
   }
 
+  /**
+   * 需求 2 加強：徹底解除 800 字門檻，字數隨寫隨發
+   */
   function updateWordCountDisplay(htmlContent) {
     const cleanText = getCleanText(htmlContent);
     const count = cleanText.length;
     const hintElem = document.getElementById("post-wordcount-hint");
     if (hintElem) {
-      if (count >= 800) {
-        hintElem.textContent = "目前純文字數：" + count + " 字 (已符合大於 800 字規範)";
-        hintElem.style.color = "#16A34A";
-      } else {
-        hintElem.textContent = "目前純文字數：" + count + " 字 (發布需滿 800 字，尚差 " + (800 - count) + " 字)";
-        hintElem.style.color = "#D9383A";
-      }
+      hintElem.textContent = "目前純文字數：" + count + " 字 (可直接發布)";
+      hintElem.style.color = "var(--text-secondary)";
     }
   }
 
+  /**
+   * 需求 4 加強：即時抓取目前編輯器輸入框內的所有真實資料進行預覽，杜絕「找不到指定文章」
+   */
   function previewCurrentArticleInFront() {
-    const post = StateStore.getState("currentPost");
-    if (!post || (!post.title && !post.content_html)) {
-      ToastController.show("請先完成文章生成或輸入內容後再預覽", "warn");
+    const titleInput = document.getElementById("post-title-input");
+    const hookInput = document.getElementById("post-hook-input");
+    const htmlInput = document.getElementById("post-content-html-input");
+    const scoreInput = document.getElementById("post-diagnostic-score-input");
+
+    const curTitle = titleInput ? titleInput.value.trim() : "";
+    const curHtml = htmlInput ? htmlInput.value.trim() : "";
+    const curHook = hookInput ? hookInput.value.trim() : "";
+    const curScore = scoreInput ? (Number(scoreInput.value) || 95) : 95;
+
+    if (!curTitle && !curHtml) {
+      ToastController.show("請先在編輯器輸入標題或內文後再預覽", "warn");
       return;
     }
 
+    const curPost = StateStore.getState("currentPost") || {};
     const previewPost = {
-      id: post.id || "preview_temp",
-      title: post.title,
-      hook: post.hook || "",
-      content_html: post.content_html || "",
+      id: curPost.id || "preview_temp",
+      title: curTitle || "未命名文章預覽",
+      hook: curHook || "",
+      content_html: curHtml || "<p>尚未輸入內文。</p>",
       created_at: new Date().toISOString(),
-      diagnostic_score: post.diagnostic_score || 95,
+      diagnostic_score: curScore,
       audio_files: StateStore.getState("audioChunksList") || []
     };
 
     StateStore.setState("activeReadingPost", previewPost);
-    addExecutionLog("已切換至前台單篇發布預覽檢視模式", "info");
+    addExecutionLog("已將當前編輯器內容轉為前台預覽檢視模式", "info");
     ViewSwitcher.navigate("article", previewPost.id);
   }
 
+  /**
+   * 需求 2 加強：廢除 800 字發布驗證，只要標題與內文不為空即可前往發布！
+   */
   function validateAndGoPublish() {
-    const post = StateStore.getState("currentPost");
-    const title = (post.title || "").trim();
-    const contentHtml = (post.content_html || "").trim();
-    const cleanText = getCleanText(contentHtml);
+    const titleInput = document.getElementById("post-title-input");
+    const htmlInput = document.getElementById("post-content-html-input");
+    const title = titleInput ? titleInput.value.trim() : "";
+    const contentHtml = htmlInput ? htmlInput.value.trim() : "";
 
     if (!title) {
       ToastController.show("文章標題不得為空", "error");
       return;
     }
 
-    if (cleanText.length < 800) {
-      ToastController.show("內文純文字需滿 800 字（目前僅 " + cleanText.length + " 字）", "error");
+    if (!contentHtml || getCleanText(contentHtml).length === 0) {
+      ToastController.show("請先在編輯器輸入文章內文", "error");
       return;
     }
 
@@ -2892,13 +2886,24 @@
       return;
     }
 
+    StateStore.updatePostField("title", title);
+    StateStore.updatePostField("content_html", contentHtml);
     ViewSwitcher.navigate("publish");
   }
 
+  /**
+   * 需求 5 加強：發布成功後，提供「部落格首頁」與「單篇獨立文章頁」兩個公開網址一鍵複製與前往！
+   */
   async function publishToGitHubAction() {
-    const post = StateStore.getState("currentPost");
-    const title = (post.title || "").trim();
-    const contentHtml = (post.content_html || "").trim();
+    const titleInput = document.getElementById("post-title-input");
+    const hookInput = document.getElementById("post-hook-input");
+    const htmlInput = document.getElementById("post-content-html-input");
+    const scoreInput = document.getElementById("post-diagnostic-score-input");
+
+    const title = titleInput ? titleInput.value.trim() : "";
+    const contentHtml = htmlInput ? htmlInput.value.trim() : "";
+    const hook = hookInput ? hookInput.value.trim() : "";
+    const score = scoreInput ? (Number(scoreInput.value) || 95) : 95;
 
     if (!title || !contentHtml) {
       ToastController.show("標題與內文不可為空", "error");
@@ -2907,34 +2912,40 @@
 
     ModalController.open({
       title: "確認發布至 GitHub 獨立網頁",
-      content: "確定要將《" + title + "》發布為 GitHub 獨立文章網頁並更新首頁文章流水嗎？",
+      content: "確定要將《" + title + "》發布為 GitHub 獨立文章網頁並更新首頁流水清單嗎？",
       onConfirm: async function () {
-        addExecutionLog("正在生成內嵌完整樣式之獨立 HTML 並推播至 GitHub 倉庫...", "info");
+        addExecutionLog("正在生成自帶完整樣式之獨立 HTML 並推播至 GitHub 倉庫...", "info");
         ToastController.show("正在發布至 GitHub 獨立網頁與首頁索引...", "info");
         const publishBtn = document.getElementById("btn-publish-github");
         publishBtn.classList.add("btn-disabled");
+
+        const curPost = StateStore.getState("currentPost") || {};
+        const postId = curPost.id || ("post_" + new Date().getTime());
 
         try {
           const res = await callBackendApi("publishToGitHub", {
             _rowId: StateStore.getState("_rowId"),
             postData: {
-              id: post.id || ("post_" + new Date().getTime()),
+              id: postId,
               title: title,
-              hook: post.hook || "",
+              hook: hook,
               content_html: contentHtml,
               audio_files: StateStore.getState("audioChunksList"),
               transcripts: StateStore.getState("liveTranscriptText") || "",
-              diagnostic_score: post.diagnostic_score || 95
+              diagnostic_score: score
             }
           });
 
           if (res.status === "success") {
-            addExecutionLog("發布成功！線上網址: " + res.data.published_url, "success");
-            ToastController.show("文章已成功發布至 GitHub 獨立網頁！", "success");
+            const publishedSingleUrl = res.data.published_url || ("https://alwayslucky2hand-ops.github.io/troypodcatblogpush/" + postId + ".html");
+            const publishedPortalUrl = "https://alwayslucky2hand-ops.github.io/troypodcatblogpush/";
+
+            addExecutionLog("發布成功！獨立文章: " + publishedSingleUrl, "success");
+            ToastController.show("文章已成功發布！", "success");
+
+            // 彈出雙公開網址操作面板
+            showPublishSuccessModal(publishedPortalUrl, publishedSingleUrl, title);
             StateStore.clear();
-            setTimeout(function () {
-              ViewSwitcher.navigate("blog");
-            }, 1200);
           } else {
             addExecutionLog("發布失敗: " + res.message, "error");
             ToastController.show("發布失敗: " + res.message, "error");
@@ -2947,6 +2958,61 @@
         }
       }
     });
+  }
+
+  function showPublishSuccessModal(portalUrl, articleUrl, postTitle) {
+    const contentHtml = 
+      '<div style="font-size: 14px; line-height: 1.8; color: var(--text-primary);">' +
+        '<p style="margin-bottom: 14px; font-weight: 600; color: #16A34A;">恭喜！文章《' + postTitle + '》已成功發布並建立公開網頁！</p>' +
+        
+        '<div style="background: var(--bg-card); border: 1px solid var(--border-light); border-radius: 6px; padding: 12px; margin-bottom: 12px;">' +
+          '<div style="font-size: 12px; font-weight: 700; color: var(--text-secondary); margin-bottom: 4px;">網址 1：特洛伊專欄首頁 (含個人品牌介紹與文章流水)</div>' +
+          '<div style="font-size: 12px; word-break: break-all; color: #2563EB; margin-bottom: 8px;">' + portalUrl + '</div>' +
+          '<div style="display: flex; gap: 8px;">' +
+            '<button class="btn btn-secondary btn-sm" onclick="copyToClipboard(\'' + portalUrl + '\', \'首頁網址已複製\')">' +
+              '<i data-lucide="copy" style="width: 12px; height: 12px;"></i> 一鍵複製首頁網址' +
+            '</button>' +
+            '<a href="' + portalUrl + '" target="_blank" class="btn btn-primary btn-sm">' +
+              '<i data-lucide="external-link" style="width: 12px; height: 12px;"></i> 開啟首頁' +
+            '</a>' +
+          '</div>' +
+        '</div>' +
+
+        '<div style="background: var(--bg-card); border: 1px solid var(--border-light); border-radius: 6px; padding: 12px;">' +
+          '<div style="font-size: 12px; font-weight: 700; color: var(--text-secondary); margin-bottom: 4px;">網址 2：本篇文章公開獨立網頁 (自帶完整樣式與切片播放器)</div>' +
+          '<div style="font-size: 12px; word-break: break-all; color: #2563EB; margin-bottom: 8px;">' + articleUrl + '</div>' +
+          '<div style="display: flex; gap: 8px;">' +
+            '<button class="btn btn-secondary btn-sm" onclick="copyToClipboard(\'' + articleUrl + '\', \'單篇網址已複製\')">' +
+              '<i data-lucide="copy" style="width: 12px; height: 12px;"></i> 一鍵複製文章網址' +
+            '</button>' +
+            '<a href="' + articleUrl + '" target="_blank" class="btn btn-primary btn-sm">' +
+              '<i data-lucide="external-link" style="width: 12px; height: 12px;"></i> 前往文章頁' +
+            '</a>' +
+          '</div>' +
+        '</div>' +
+      '</div>';
+
+    ModalController.open({
+      title: "文章發布成功！公開網址已生成",
+      content: contentHtml,
+      hideConfirm: true
+    });
+  }
+
+  function copyToClipboard(text, successMsg) {
+    if (navigator.clipboard) {
+      navigator.clipboard.writeText(text).then(function () {
+        ToastController.show(successMsg || "已成功複製到剪貼簿！", "success");
+      });
+    } else {
+      const ta = document.createElement("textarea");
+      ta.value = text;
+      document.body.appendChild(ta);
+      ta.select();
+      document.execCommand("copy");
+      document.body.removeChild(ta);
+      ToastController.show(successMsg || "已成功複製到剪貼簿！", "success");
+    }
   }
 
   function confirmClearDraft() {
@@ -3501,7 +3567,7 @@
 
   /**
    * ==========================================================================
-   * 獨立文章加載、Gemini 智能延伸閱讀推薦渲染 (含叫回編輯與刪除操作)
+   * 需求 4 加強：獨立文章加載與預覽渲染 (徹底根治「找不到指定文章」)
    * ==========================================================================
    */
   async function loadSingleArticle(postId) {
@@ -3516,30 +3582,37 @@
 
     try {
       let post = null;
+      const targetPostId = String(postId || "").trim();
       const active = StateStore.getState("activeReadingPost");
+      const current = StateStore.getState("currentPost");
 
-      if (active && (active.id === postId || postId === "preview_temp")) {
+      // 優先序 1: 預覽狀態比對 (即時命中)
+      if (active && (String(active.id) === targetPostId || targetPostId === "preview_temp" || !targetPostId)) {
         post = active;
+      } else if (current && String(current.id) === targetPostId) {
+        post = current;
       } else {
+        // 優先序 2: 從已載入的文章陣列找尋
         const all = StateStore.getState("allPosts") || [];
         for (let i = 0; i < all.length; i++) {
-          if (all[i].id === postId) { post = all[i]; break; }
+          if (String(all[i].id) === targetPostId) { post = all[i]; break; }
         }
 
-        if (!post) {
-          const res = await callBackendApi("getPostById", { id: postId });
+        // 優先序 3: 向後端伺服器查詢
+        if (!post && targetPostId && targetPostId !== "preview_temp") {
+          const res = await callBackendApi("getPostById", { id: targetPostId });
           if (res.status === "success" && res.data) post = res.data;
         }
       }
 
       if (!post) {
-        contentElem.innerHTML = '<div class="empty-state"><p class="empty-state-title">找不到指定文章</p></div>';
+        contentElem.innerHTML = '<div class="empty-state"><p class="empty-state-title">找不到指定文章</p><p style="font-size:12px;color:var(--text-muted);margin-top:6px;">請返回編輯器點擊「預覽前台發布效果」或確認文章 ID 是否正確。</p></div>';
         return;
       }
 
       StateStore.setState("activeReadingPost", post);
 
-      const dateStr = post.created_at ? new Date(post.created_at).toLocaleDateString("zh-TW") : "最新刊登";
+      const dateStr = post.created_at ? new Date(post.created_at).toLocaleDateString("zh-TW") : "即時預覽";
       const score = post.diagnostic_score || 95;
 
       contentElem.innerHTML = 
@@ -3694,7 +3767,7 @@
 
   /**
    * ==========================================================================
-   * 部落格首頁流水、防抖搜尋與多維排序 (含叫回編輯與刪除操作按鈕)
+   * 部落格首頁流水、防抖搜尋與多維排序
    * ==========================================================================
    */
   function debounce(func, delay) {
