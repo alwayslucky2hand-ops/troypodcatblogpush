@@ -1267,9 +1267,12 @@ a {
  * 特洛伊 AI 語音客製部落格中樞 - 前端核心業務邏輯庫 (JS.html)
  * 涵蓋核心升級：
  * 1. 全域動態進度條控制中心 (ProgressController)：含百分比數值、平滑進度條與精簡步驟小字
- * 2. 兩階段 AI 選題與發布流深度整合動態進度：選題 (0%~100%) 與全文撰寫 (0%~100%) 全程可視化
+ * 2. 三大階段 AI 流程全面可視化：
+ *    - 階段一：選題提案生成 (0% ~ 100% 動態微步驟)
+ *    - 階段二：極致呼吸感全文撰寫 (0% ~ 100% 動態微步驟)
+ *    - 階段三：一鍵發布至 GitHub 獨立頁與沙龍首頁 (0% ~ 100% 動態微步驟)
  * 3. 50000 字元防爆清洗：發布至 GitHub 時精準分離 Base64，杜絕污染試算表儲存格
- * 4. 100% 繼承：語音看門狗守護引擎、Scoped Lucide 局部渲染、原生音訊播放器與歷史文章庫存管理
+ * 4. 100% 神聖繼承：語音看門狗守護引擎、Scoped Lucide 局部渲染、原生音訊播放器與歷史文章庫存管理
  * ==========================================================================
  */
 
@@ -1422,7 +1425,7 @@ function clearExecutionLog() {
 
 /**
  * 全域動態進度條控制中心 (ProgressController)
- * 解決長等待問題：提供百分比數值、動態平滑條與階段性精簡小字指示
+ * 解決長等待與發布無感問題：提供百分比數值、平滑進度條與精簡步驟小字
  */
 const ProgressController = {
   backdrop: null,
@@ -1469,9 +1472,9 @@ const ProgressController = {
     this.targetPercent = 94;
 
     const steps = config.steps || [
-      { at: 15, text: "正在分析語音逐字稿..." },
-      { at: 45, text: "正在進行多組 API Key 安全調度..." },
-      { at: 75, text: "正在生成結構化商業內容..." }
+      { at: 15, text: "正在分析資料..." },
+      { at: 45, text: "正在進行系統處理..." },
+      { at: 75, text: "正在準備完成..." }
     ];
 
     this.updateUi(0, steps[0].text);
@@ -2557,7 +2560,7 @@ function validateAndGoPublish() {
 }
 
 /**
- * 步驟 4: 一鍵發布至 GitHub (徹底杜絕 50000 字元超標)
+ * 步驟 4: 一鍵發布至 GitHub (整合專屬 % 數小字進度條與 50,000 字元防爆清洗)
  */
 async function publishToGitHubAction() {
   let title = (document.getElementById("post-title-input").value || "").trim();
@@ -2578,8 +2581,7 @@ async function publishToGitHubAction() {
     title: "確認發布至 GitHub 獨立網頁",
     content: "確定要將《" + title + "》發布為獨立網頁並更新方格子沙龍首頁嗎？",
     onConfirm: async function () {
-      addExecutionLog("正在生成獨立專欄與上傳音檔至 GitHub 倉庫...", "info");
-      ToastController.show("正在發布至 GitHub 獨立網頁與沙龍首頁...", "info");
+      addExecutionLog("正在啟動發布管線：生成獨立專欄與上傳音檔至 GitHub 倉庫...", "info");
       const publishBtn = document.getElementById("btn-publish-github");
       publishBtn.classList.add("btn-disabled");
 
@@ -2595,6 +2597,18 @@ async function publishToGitHubAction() {
       if (masterB64) {
         audioPayload = [{ raw_base64: masterB64, name: "full_master.webm", duration: audioDuration }].concat(audioPayload);
       }
+
+      // 啟動發布專屬 % 數與微步驟小字進度條
+      ProgressController.show({
+        title: "文章發布至 GitHub 獨立網頁中",
+        estimatedMs: 12000,
+        steps: [
+          { at: 10, text: "正在封裝原聲音檔母檔與獨立文章網頁碼..." },
+          { at: 35, text: "正在向 GitHub 倉庫推送獨立文章與專屬音檔..." },
+          { at: 65, text: "正在同步更新 Google 試算表發布總表 (Col 1~13)..." },
+          { at: 85, text: "正在洗滌重構前台 home.html 沙龍首頁與 posts.json..." }
+        ]
+      });
 
       try {
         const res = await callBackendApi("publishToGitHub", {
@@ -2615,17 +2629,22 @@ async function publishToGitHubAction() {
           const publishedSingleUrl = res.data.published_url || ("https://alwayslucky2hand-ops.github.io/troypodcatblogpush/" + postId + ".html");
           const publishedPortalUrl = res.data.portal_url || "https://alwayslucky2hand-ops.github.io/troypodcatblogpush/home.html";
 
+          ProgressController.complete("發布完成！公開網頁與專欄首頁已就緒");
           addExecutionLog("發布成功！獨立文章: " + publishedSingleUrl, "success");
           ToastController.show("文章已成功發布！", "success");
 
-          showPublishSuccessModal(publishedPortalUrl, publishedSingleUrl, title);
-          StateStore.clear();
+          setTimeout(() => {
+            showPublishSuccessModal(publishedPortalUrl, publishedSingleUrl, title);
+            StateStore.clear();
+          }, 450);
         } else {
+          ProgressController.close();
           addExecutionLog("發布失敗: " + res.message, "error");
           ToastController.show("發布失敗: " + res.message, "error");
           publishBtn.classList.remove("btn-disabled");
         }
       } catch (err) {
+        ProgressController.close();
         addExecutionLog("發布異常: " + err.message, "error");
         ToastController.show("發布異常: " + err.message, "error");
         publishBtn.classList.remove("btn-disabled");
@@ -3069,7 +3088,7 @@ const SeamlessAudioPlayer = {
   updatePlayIcon: function (playing) {
     const icon = document.getElementById("player-toggle-icon");
     if (icon) {
-      icon.setAttribute("data-lucide", playing ? "pause" : "play");
+      icon.setAttribute("data-lucide", "pause");
       if (window.lucide) lucide.createIcons();
     }
   },
