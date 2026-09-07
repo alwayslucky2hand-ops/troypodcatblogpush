@@ -3,100 +3,2684 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>特洛伊 AI 品牌專欄 ｜ 方格子沙龍首頁</title>
+  <title>特洛伊 AI 語音客製部落格中樞</title>
+  
+  <!-- 字體與圖示庫支援 (GitHub Pages 部署必備) -->
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+TC:wght@400;500;600;700&display=swap" rel="stylesheet">
   <script src="https://unpkg.com/lucide@latest"></script>
+
   <style>
-    :root { --bg-main: #FFFFFF; --bg-card: #FAFAFA; --bg-hover: #F4F4F5; --text-primary: #111111; --text-secondary: #555555; --text-muted: #888888; --border-light: #E5E5E5; --radius-default: 8px; }
-    * { box-sizing: border-box; margin: 0; padding: 0; }
-    body { font-family: 'Noto Sans TC', -apple-system, sans-serif; background-color: var(--bg-main); color: var(--text-primary); line-height: 1.8; padding: 40px 20px; }
-    .container { max-width: 900px; margin: 0 auto; }
-    .salon-cover { background: linear-gradient(135deg, #18181B 0%, #27272A 100%); color: #FFF; border-radius: var(--radius-default); padding: 36px 28px; margin-bottom: 32px; display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 20px; }
-    .salon-badge { display: inline-flex; align-items: center; gap: 6px; background: rgba(255,255,255,0.15); padding: 4px 10px; border-radius: 20px; font-size: 11px; margin-bottom: 12px; letter-spacing: 0.05em; }
-    .salon-title { font-size: 24px; font-weight: 700; margin-bottom: 8px; color: #FFF; }
-    .salon-desc { font-size: 14px; opacity: 0.9; line-height: 1.7; margin-bottom: 20px; }
-    .btn-salon-cta { display: inline-flex; align-items: center; gap: 8px; padding: 8px 18px; border-radius: var(--radius-default); font-size: 13px; font-weight: 600; text-decoration: none; background: #FFF; color: #111; transition: opacity 0.2s ease; }
-    .btn-salon-cta:hover { opacity: 0.9; }
-    .filter-bar { display: flex; gap: 12px; margin-bottom: 28px; flex-wrap: wrap; }
-    .search-input { flex: 1; min-width: 220px; padding: 12px 14px; border: 1px solid var(--border-light); border-radius: var(--radius-default); font-size: 14px; outline: none; transition: border-color 0.2s ease; }
-    .search-input:focus { border-color: var(--text-primary); }
-    .hero-card { background: var(--bg-card); border: 2px solid var(--text-primary); border-radius: var(--radius-default); padding: 28px; margin-bottom: 28px; text-decoration: none; color: inherit; display: block; transition: transform 0.2s ease; }
-    .hero-card:hover { transform: translateY(-2px); }
-    .hero-title { font-size: 20px; font-weight: 700; line-height: 1.4; margin-bottom: 12px; color: var(--text-primary); }
-    .hero-hook { font-size: 14px; color: var(--text-secondary); line-height: 1.7; margin-bottom: 18px; }
-    .hero-footer { display: flex; justify-content: space-between; align-items: center; font-size: 12px; color: var(--text-muted); border-top: 1px solid var(--border-light); padding-top: 14px; flex-wrap: wrap; gap: 8px; }
-    .posts-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(280px, 1fr)); gap: 20px; }
-    .post-card { background: var(--bg-card); border: 1px solid var(--border-light); border-radius: var(--radius-default); padding: 20px; display: flex; flex-direction: column; justify-content: space-between; transition: transform 0.2s ease, border-color 0.2s ease; text-decoration: none; color: inherit; }
-    .post-card:hover { border-color: var(--text-primary); transform: translateY(-2px); }
-    .post-title { font-size: 16px; font-weight: 600; line-height: 1.45; margin-bottom: 10px; }
-    .post-hook { font-size: 13px; color: var(--text-secondary); line-height: 1.6; margin-bottom: 16px; display: -webkit-box; -webkit-line-clamp: 3; -webkit-box-orient: vertical; overflow: hidden; }
-    .post-footer { display: flex; justify-content: space-between; font-size: 12px; color: var(--text-muted); border-top: 1px solid var(--border-light); padding-top: 10px; }
+  /* ==========================================================================
+     CSS Design Tokens、極簡黑白風 Reset 與後台工作流配置 (嚴禁 Emoji)
+     ========================================================================== */
+  :root {
+    --bg-main: #FFFFFF;
+    --bg-card: #FAFAFA;
+    --bg-hover: #F4F4F5;
+    --text-primary: #111111;
+    --text-secondary: #555555;
+    --text-muted: #888888;
+    --border-light: #E5E5E5;
+    --border-focus: #111111;
+    --text-h1: 22px;
+    --text-h2: 18px;
+    --text-h3: 15px;
+    --text-body: 14px;
+    --text-caption: 12px;
+    --btn-height: 40px;
+    --radius-default: 8px;
+    --content-max-width: 920px;
+    --line-height-relaxed: 1.85;
+    --bottom-nav-height: 60px;
+  }
+
+  * {
+    box-sizing: border-box;
+    margin: 0;
+    padding: 0;
+    -webkit-tap-highlight-color: transparent;
+  }
+
+  body {
+    font-family: 'Noto Sans TC', -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+    background-color: var(--bg-main);
+    color: var(--text-primary);
+    font-size: var(--text-body);
+    line-height: var(--line-height-relaxed);
+    letter-spacing: 0.02em;
+    padding-bottom: calc(var(--bottom-nav-height) + 40px);
+  }
+
+  a {
+    color: inherit;
+    text-decoration: none;
+  }
+
+  .app-container {
+    max-width: var(--content-max-width);
+    margin: 0 auto;
+    padding: 24px 20px 40px 20px;
+  }
+
+  /* 頂部品牌導覽列 Navbar */
+  .app-header {
+    border-bottom: 1px solid var(--border-light);
+    padding-bottom: 20px;
+    margin-bottom: 24px;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    flex-wrap: wrap;
+    gap: 16px;
+  }
+
+  .brand-title {
+    font-size: var(--text-h1);
+    font-weight: 700;
+    color: var(--text-primary);
+    display: flex;
+    align-items: center;
+    gap: 10px;
+  }
+
+  .brand-subtitle {
+    font-size: var(--text-caption);
+    color: var(--text-secondary);
+    margin-top: 4px;
+  }
+
+  .header-actions {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    flex-wrap: wrap;
+  }
+
+  /* 離線防護狀態與同步指示器 */
+  .network-badge {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    font-size: var(--text-caption);
+    color: var(--text-secondary);
+    padding: 4px 10px;
+    background-color: var(--bg-card);
+    border: 1px solid var(--border-light);
+    border-radius: 20px;
+  }
+
+  .network-dot {
+    width: 8px;
+    height: 8px;
+    border-radius: 50%;
+    background-color: #22C55E;
+  }
+
+  .network-dot.offline {
+    background-color: #D9383A;
+  }
+
+  .network-dot.syncing {
+    background-color: #EAB308;
+    animation: pulseDot 1s infinite ease-in-out;
+  }
+
+  @keyframes pulseDot {
+    0%, 100% { transform: scale(1); opacity: 1; }
+    50% { transform: scale(1.3); opacity: 0.6; }
+  }
+
+  /* 後台步驟導航切換列 View Switcher */
+  .step-indicator {
+    display: flex;
+    gap: 8px;
+    margin-bottom: 24px;
+    overflow-x: auto;
+    padding-bottom: 4px;
+  }
+
+  .step-pill {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    padding: 8px 16px;
+    border-radius: 20px;
+    font-size: var(--text-caption);
+    background-color: var(--bg-card);
+    border: 1px solid var(--border-light);
+    color: var(--text-secondary);
+    white-space: nowrap;
+    cursor: pointer;
+    transition: all 0.2s ease;
+  }
+
+  .step-pill.active {
+    background-color: var(--text-primary);
+    border-color: var(--text-primary);
+    color: var(--bg-main);
+    font-weight: 600;
+  }
+
+  /* 區塊面板樣式 */
+  .panel-section {
+    background-color: var(--bg-card);
+    border: 1px solid var(--border-light);
+    border-radius: var(--radius-default);
+    padding: 24px;
+    margin-bottom: 24px;
+    display: none;
+  }
+
+  .panel-section.active {
+    display: block;
+    animation: fadeIn 0.25s ease;
+  }
+
+  @keyframes fadeIn {
+    from { opacity: 0; transform: translateY(4px); }
+    to { opacity: 1; transform: translateY(0); }
+  }
+
+  .panel-section-title {
+    font-size: var(--text-h2);
+    font-weight: 600;
+    margin-bottom: 16px;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+  }
+
+  /* 按鈕元件規格 */
+  .btn {
+    height: var(--btn-height);
+    padding: 0 18px;
+    border-radius: var(--radius-default);
+    font-size: var(--text-body);
+    font-weight: 500;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: 8px;
+    cursor: pointer;
+    transition: all 0.2s ease;
+    border: none;
+    outline: none;
+    font-family: inherit;
+  }
+
+  .btn-primary {
+    background-color: var(--text-primary);
+    color: var(--bg-main);
+  }
+
+  .btn-primary:hover {
+    opacity: 0.9;
+  }
+
+  .btn-secondary {
+    background-color: var(--bg-main);
+    color: var(--text-primary);
+    border: 1px solid var(--border-light);
+  }
+
+  .btn-secondary:hover {
+    background-color: var(--bg-hover);
+    border-color: var(--text-primary);
+  }
+
+  .btn-danger {
+    background-color: #D9383A;
+    color: #FFFFFF;
+  }
+
+  .btn-danger:hover {
+    opacity: 0.9;
+  }
+
+  .btn-disabled {
+    opacity: 0.45;
+    cursor: not-allowed !important;
+    pointer-events: none;
+  }
+
+  .btn-sm {
+    height: 32px;
+    padding: 0 12px;
+    font-size: var(--text-caption);
+  }
+
+  /* 擬真動態錄音面板與波形模擬器 */
+  .recorder-box {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    padding: 36px 16px;
+    border: 1px dashed var(--border-light);
+    border-radius: var(--radius-default);
+    background-color: var(--bg-main);
+    text-align: center;
+    margin-bottom: 16px;
+  }
+
+  .timer-display {
+    font-size: 38px;
+    font-weight: 700;
+    letter-spacing: 0.05em;
+    margin: 12px 0 6px 0;
+    font-variant-numeric: tabular-nums;
+    color: var(--text-primary);
+  }
+
+  .chunk-info {
+    font-size: var(--text-caption);
+    color: var(--text-secondary);
+    margin-bottom: 18px;
+  }
+
+  .recording-status-wrap {
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+    padding: 4px 12px;
+    background-color: #FEF2F2;
+    border: 1px solid #FEE2E2;
+    border-radius: 16px;
+    font-size: var(--text-caption);
+    color: #991B1B;
+    font-weight: 500;
+    margin-bottom: 8px;
+  }
+
+  .recording-indicator {
+    width: 10px;
+    height: 10px;
+    border-radius: 50%;
+    background-color: #D9383A;
+    animation: pulseDot 1.2s infinite ease-in-out;
+  }
+
+  .waveform-container {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 4px;
+    height: 36px;
+    margin-bottom: 20px;
+  }
+
+  .waveform-bar {
+    width: 4px;
+    height: 8px;
+    background-color: var(--border-light);
+    border-radius: 2px;
+    transition: height 0.15s ease, background-color 0.2s ease;
+  }
+
+  .waveform-container.active .waveform-bar {
+    background-color: var(--text-primary);
+    animation: waveMotion 0.8s infinite ease-in-out alternate;
+  }
+
+  .waveform-container.active .waveform-bar:nth-child(1)  { animation-delay: 0.05s; }
+  .waveform-container.active .waveform-bar:nth-child(2)  { animation-delay: 0.15s; }
+  .waveform-container.active .waveform-bar:nth-child(3)  { animation-delay: 0.25s; }
+  .waveform-container.active .waveform-bar:nth-child(4)  { animation-delay: 0.35s; }
+  .waveform-container.active .waveform-bar:nth-child(5)  { animation-delay: 0.45s; }
+  .waveform-container.active .waveform-bar:nth-child(6)  { animation-delay: 0.55s; }
+  .waveform-container.active .waveform-bar:nth-child(7)  { animation-delay: 0.40s; }
+  .waveform-container.active .waveform-bar:nth-child(8)  { animation-delay: 0.30s; }
+  .waveform-container.active .waveform-bar:nth-child(9)  { animation-delay: 0.20s; }
+  .waveform-container.active .waveform-bar:nth-child(10) { animation-delay: 0.10s; }
+  .waveform-container.active .waveform-bar:nth-child(11) { animation-delay: 0.30s; }
+  .waveform-container.active .waveform-bar:nth-child(12) { animation-delay: 0.50s; }
+
+  @keyframes waveMotion {
+    0% { height: 6px; }
+    100% { height: 32px; }
+  }
+
+  .recorder-btn-group {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 12px;
+    justify-content: center;
+  }
+
+  /* 逐字稿即時編輯區塊 */
+  .transcript-editor-wrap {
+    margin: 20px 0;
+    background: var(--bg-main);
+    border: 1px solid var(--border-light);
+    border-radius: var(--radius-default);
+    padding: 18px;
+    transition: border-color 0.2s ease;
+  }
+
+  .transcript-editor-wrap:focus-within {
+    border-color: var(--border-focus);
+  }
+
+  /* 即時執行日誌控制台 (Terminal Style) */
+  .log-terminal-container {
+    background-color: #18181B;
+    border: 1px solid #27272A;
+    border-radius: var(--radius-default);
+    margin-top: 20px;
+    overflow: hidden;
+  }
+
+  .log-terminal-header {
+    background-color: #27272A;
+    padding: 8px 14px;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+  }
+
+  .log-terminal-title {
+    font-size: 12px;
+    font-weight: 600;
+    color: #A1A1AA;
+    display: flex;
+    align-items: center;
+    gap: 6px;
+  }
+
+  .log-terminal-body {
+    padding: 12px 14px;
+    max-height: 180px;
+    overflow-y: auto;
+    font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
+    font-size: 12px;
+    line-height: 1.65;
+    color: #E4E4E7;
+  }
+
+  .log-entry {
+    margin-bottom: 4px;
+    word-break: break-all;
+  }
+
+  .log-entry-info { color: #38BDF8; }
+  .log-entry-success { color: #4ADE80; }
+  .log-entry-warn { color: #FACC15; }
+  .log-entry-error { color: #F87171; }
+
+  /* 切片與逐字稿列表 */
+  .audio-chunks-list {
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+    margin-top: 10px;
+  }
+
+  .chunk-card {
+    background-color: var(--bg-main);
+    border: 1px solid var(--border-light);
+    border-radius: var(--radius-default);
+    padding: 12px 14px;
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+  }
+
+  .chunk-card-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    font-size: 13px;
+    font-weight: 600;
+  }
+
+  .chunk-link-tag {
+    display: inline-flex;
+    align-items: center;
+    gap: 4px;
+    font-size: 11px;
+    color: #2563EB;
+    text-decoration: underline;
+  }
+
+  /* 提案卡片網格 */
+  .proposals-grid {
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+    max-height: 480px;
+    overflow-y: auto;
+    padding-right: 4px;
+    margin-bottom: 20px;
+  }
+
+  .proposal-card {
+    background-color: var(--bg-main);
+    border: 1px solid var(--border-light);
+    border-radius: var(--radius-default);
+    padding: 16px;
+    cursor: pointer;
+    transition: all 0.2s ease;
+    display: flex;
+    gap: 14px;
+    align-items: flex-start;
+  }
+
+  .proposal-card:hover {
+    border-color: var(--text-primary);
+  }
+
+  .proposal-card.selected {
+    border: 2px solid var(--text-primary);
+    background-color: var(--bg-card);
+  }
+
+  .proposal-radio {
+    margin-top: 4px;
+    accent-color: var(--text-primary);
+    cursor: pointer;
+  }
+
+  .proposal-title {
+    font-weight: 600;
+    font-size: 15px;
+    margin-bottom: 6px;
+    line-height: 1.5;
+  }
+
+  .proposal-tags {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 6px;
+    margin-bottom: 6px;
+  }
+
+  .badge {
+    font-size: 11px;
+    padding: 2px 8px;
+    background-color: var(--bg-hover);
+    border-radius: 4px;
+    color: var(--text-secondary);
+  }
+
+  .proposal-angle {
+    font-size: var(--text-caption);
+    color: var(--text-muted);
+    line-height: 1.6;
+  }
+
+  /* 表單與文章編輯器 */
+  .form-group {
+    margin-bottom: 18px;
+  }
+
+  .form-label {
+    display: block;
+    font-size: var(--text-caption);
+    font-weight: 600;
+    margin-bottom: 6px;
+    color: var(--text-secondary);
+  }
+
+  .form-hint {
+    font-size: 11px;
+    color: var(--text-muted);
+    margin-top: 4px;
+  }
+
+  .input-field, .textarea-field {
+    width: 100%;
+    padding: 12px 14px;
+    border: 1px solid var(--border-light);
+    border-radius: var(--radius-default);
+    background-color: var(--bg-main);
+    font-size: var(--text-body);
+    color: var(--text-primary);
+    transition: border-color 0.2s ease;
+    font-family: inherit;
+  }
+
+  .input-field:focus, .textarea-field:focus {
+    outline: none;
+    border-color: var(--border-focus);
+  }
+
+  .textarea-field {
+    resize: vertical;
+    min-height: 220px;
+    line-height: 1.8;
+  }
+
+  .breathing-preview {
+    background-color: var(--bg-main);
+    border: 1px solid var(--border-light);
+    border-radius: var(--radius-default);
+    padding: 24px;
+    max-height: 480px;
+    overflow-y: auto;
+    margin-bottom: 16px;
+  }
+
+  .breathing-preview p {
+    margin-bottom: 20px;
+    line-height: 1.95;
+  }
+
+  .breathing-preview h3 {
+    font-size: 18px;
+    font-weight: 700;
+    margin: 28px 0 16px 0;
+    padding-bottom: 8px;
+    border-bottom: 1px solid var(--border-light);
+  }
+
+  .breathing-preview blockquote {
+    border-left: 3px solid var(--text-primary);
+    background: var(--bg-card);
+    padding: 12px 16px;
+    margin: 20px 0;
+  }
+
+  .breathing-preview hr {
+    border: none;
+    border-top: 1px dashed var(--border-light);
+    margin: 28px 0;
+  }
+
+  .action-bar {
+    display: flex;
+    justify-content: flex-end;
+    gap: 12px;
+    margin-top: 20px;
+    flex-wrap: wrap;
+  }
+
+  /* 讀者端多切片音訊播放器 */
+  .audio-player-card {
+    background-color: var(--bg-main);
+    border: 1px solid var(--border-light);
+    border-radius: var(--radius-default);
+    padding: 20px;
+    margin-bottom: 24px;
+    box-shadow: 0 4px 12px rgba(0,0,0,0.03);
+  }
+
+  .player-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 12px;
+    font-size: var(--text-caption);
+    color: var(--text-secondary);
+  }
+
+  .player-progress-container {
+    width: 100%;
+    height: 6px;
+    background-color: var(--bg-hover);
+    border-radius: 3px;
+    cursor: pointer;
+    position: relative;
+    margin-bottom: 12px;
+  }
+
+  .player-progress-fill {
+    height: 100%;
+    width: 0%;
+    background-color: var(--text-primary);
+    border-radius: 3px;
+    transition: width 0.1s linear;
+  }
+
+  .player-controls-row {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    flex-wrap: wrap;
+    gap: 12px;
+  }
+
+  .player-btn-group {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+  }
+
+  .player-ctrl-btn {
+    background: none;
+    border: none;
+    cursor: pointer;
+    color: var(--text-primary);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 6px;
+    border-radius: 50%;
+    transition: background-color 0.2s ease;
+  }
+
+  .player-ctrl-btn:hover {
+    background-color: var(--bg-hover);
+  }
+
+  .player-play-btn {
+    width: 44px;
+    height: 44px;
+    background-color: var(--text-primary);
+    color: var(--bg-main);
+    border-radius: 50%;
+  }
+
+  .player-play-btn:hover {
+    background-color: #333333;
+  }
+
+  .player-speed-btn {
+    font-size: 11px;
+    font-weight: 700;
+    padding: 4px 8px;
+    border: 1px solid var(--border-light);
+    border-radius: 12px;
+    background-color: var(--bg-card);
+    cursor: pointer;
+  }
+
+  /* 診斷卡樣式 */
+  .diagnostic-card {
+    background-color: var(--bg-card);
+    border: 1px solid var(--border-light);
+    border-radius: var(--radius-default);
+    padding: 24px;
+    margin: 28px 0;
+  }
+
+  .diagnostic-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 16px;
+    padding-bottom: 12px;
+    border-bottom: 1px solid var(--border-light);
+  }
+
+  .diagnostic-score-badge {
+    font-size: 22px;
+    font-weight: 700;
+    color: var(--text-primary);
+  }
+
+  .diagnostic-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+    gap: 14px;
+  }
+
+  .diagnostic-item {
+    font-size: 13px;
+    background-color: var(--bg-main);
+    border: 1px solid var(--border-light);
+    padding: 12px;
+    border-radius: 6px;
+  }
+
+  .diagnostic-item-title {
+    color: var(--text-muted);
+    font-size: 11px;
+    margin-bottom: 4px;
+  }
+
+  .diagnostic-item-val {
+    font-weight: 600;
+    color: var(--text-primary);
+  }
+
+  /* 底部導覽列 */
+  .bottom-nav {
+    position: fixed;
+    bottom: 0;
+    left: 0;
+    right: 0;
+    height: var(--bottom-nav-height);
+    background-color: var(--bg-main);
+    border-top: 1px solid var(--border-light);
+    display: flex;
+    justify-content: space-around;
+    align-items: center;
+    z-index: 1000;
+    padding: 0 10px;
+  }
+
+  .bottom-nav-item {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    font-size: 11px;
+    color: var(--text-secondary);
+    background: none;
+    border: none;
+    cursor: pointer;
+    gap: 3px;
+    padding: 6px 10px;
+    border-radius: 6px;
+    transition: all 0.2s ease;
+    font-family: inherit;
+  }
+
+  .bottom-nav-item.active {
+    color: var(--text-primary);
+    font-weight: 600;
+  }
+
+  /* 全域 Modal */
+  .modal-backdrop {
+    position: fixed;
+    top: 0; left: 0; right: 0; bottom: 0;
+    background-color: rgba(0, 0, 0, 0.4);
+    display: none;
+    align-items: center;
+    justify-content: center;
+    z-index: 2000;
+    padding: 20px;
+  }
+
+  .modal-backdrop.open {
+    display: flex;
+    animation: modalFadeIn 0.2s ease;
+  }
+
+  @keyframes modalFadeIn {
+    from { opacity: 0; }
+    to { opacity: 1; }
+  }
+
+  .modal-dialog {
+    background-color: var(--bg-main);
+    border: 1px solid var(--border-light);
+    border-radius: var(--radius-default);
+    max-width: 520px;
+    width: 100%;
+    padding: 24px;
+    box-shadow: 0 10px 25px rgba(0, 0, 0, 0.08);
+  }
+
+  .modal-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 14px;
+  }
+
+  .modal-title {
+    font-size: var(--text-h2);
+    font-weight: 700;
+  }
+
+  .modal-body {
+    font-size: var(--text-body);
+    color: var(--text-secondary);
+    margin-bottom: 24px;
+    line-height: 1.7;
+  }
+
+  .modal-footer {
+    display: flex;
+    justify-content: flex-end;
+    gap: 12px;
+  }
+
+  /* 全域 Toast */
+  .toast-container {
+    position: fixed;
+    top: 20px;
+    right: 20px;
+    z-index: 3000;
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+    pointer-events: none;
+  }
+
+  .toast-item {
+    pointer-events: auto;
+    padding: 12px 18px;
+    background-color: var(--text-primary);
+    color: var(--bg-main);
+    border-radius: var(--radius-default);
+    font-size: var(--text-body);
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+    animation: slideIn 0.25s ease;
+    min-width: 260px;
+    justify-content: space-between;
+  }
+
+  .toast-item.error { background-color: #D9383A; }
+  .toast-item.success { background-color: #111111; }
+  .toast-item.info { background-color: #333333; }
+
+  @keyframes slideIn {
+    from { transform: translateX(100%); opacity: 0; }
+    to { transform: translateX(0); opacity: 1; }
+  }
   </style>
 </head>
 <body>
-  <div class="container">
-    <div class="salon-cover">
-      <div style="max-width:620px;">
-        <div class="salon-badge"><i data-lucide="sparkles" style="width:12px;height:12px;"></i> 特洛伊 AI 品牌專欄 ｜ 方格子沙龍</div>
-        <h1 class="salon-title">創業者的時間貧窮解放師</h1>
-        <p class="salon-desc">讓系統為你效勞、讓創業不再過勞！一起用ＡＩ守住光陰！</p>
-        <a href="https://rubybranddesign-cloud.github.io/e-line-card-share/troyAIempower/" target="_blank" class="btn-salon-cta">
-          <i data-lucide="calendar" style="width:14px;height:14px;"></i> 預約時間盤點一對一諮詢
+  <div class="app-container">
+    <!-- 頂部品牌導覽列 -->
+    <header class="app-header">
+      <div>
+        <h1 class="brand-title">
+          <i data-lucide="cpu" style="width: 22px; height: 22px;"></i>
+          特洛伊 AI 語音客製部落格中樞
+        </h1>
+        <p class="brand-subtitle">創業者的時間貧窮解放師 ｜ 讓系統為你效勞、讓創業不再過勞！</p>
+      </div>
+      <div class="header-actions">
+        <!-- 即時試算表列號綁定狀態 -->
+        <span class="badge" id="sheet-row-badge" style="display: none; background-color: #E0E7FF; color: #3730A3;">
+          <i data-lucide="database" style="width: 12px; height: 12px; margin-right: 4px;"></i> 試算表列: <span id="sheet-row-text">-</span>
+        </span>
+        <!-- 離線與同步防護徽章 -->
+        <div class="network-badge" id="network-badge">
+          <span class="network-dot" id="network-dot"></span>
+          <span id="network-text">連線正常</span>
+        </div>
+        <!-- 初始化資料庫按鈕 -->
+        <button class="btn btn-secondary btn-sm" onclick="triggerInitDatabase()">
+          <i data-lucide="wrench" style="width: 14px; height: 14px;"></i> 初始化資料庫
+        </button>
+        <!-- 清除草稿按鈕 -->
+        <button class="btn btn-secondary btn-sm" onclick="confirmClearDraft()">
+          <i data-lucide="trash-2" style="width: 14px; height: 14px;"></i> 清除草稿
+        </button>
+        <!-- 前往前台沙龍首頁 (開新分頁瀏覽 GitHub 發布的前台) -->
+        <a href="https://alwayslucky2hand-ops.github.io/troypodcatblogpush/" target="_blank" class="btn btn-secondary btn-sm">
+          <i data-lucide="external-link" style="width: 14px; height: 14px;"></i> 前往前台專欄首頁
         </a>
       </div>
-      <div style="text-align:right;opacity:0.8;font-size:12px;">
-        <div>收錄專欄文章：<strong>1</strong> 篇</div>
-        <div style="margin-top:4px;">支援原聲音檔多切片無縫串流</div>
+    </header>
+
+    <!-- 後台 4 大步驟切換導航列 (預設聚焦於 Step 1: 錄音) -->
+    <nav class="step-indicator">
+      <div class="step-pill active" id="pill-step1" onclick="ViewSwitcher.navigate('record')">
+        <i data-lucide="mic" style="width: 14px; height: 14px;"></i> 1. 語音錄製與雙軌逐字稿
+      </div>
+      <div class="step-pill" id="pill-step2" onclick="ViewSwitcher.navigate('proposals')">
+        <i data-lucide="list-checks" style="width: 14px; height: 14px;"></i> 2. AI 兩階段選題
+      </div>
+      <div class="step-pill" id="pill-step3" onclick="ViewSwitcher.navigate('editor')">
+        <i data-lucide="file-text" style="width: 14px; height: 14px;"></i> 3. 內文編輯與預覽
+      </div>
+      <div class="step-pill" id="pill-step4" onclick="ViewSwitcher.navigate('publish')">
+        <i data-lucide="send" style="width: 14px; height: 14px;"></i> 4. 發布至 GitHub
+      </div>
+    </nav>
+
+    <!-- 步驟 1: 雙軌錄音、切片上傳與即時語音轉文字面板 -->
+    <section class="panel-section active" id="panel-step1">
+      <h2 class="panel-section-title">
+        <i data-lucide="mic"></i> 雙軌錄音中樞 (每 60 秒切片存 Drive ＋ 逐字稿即時寫入試算表儲存格)
+      </h2>
+      
+      <div class="recorder-box">
+        <div class="recording-status-wrap" id="recording-status-badge" style="display: none;">
+          <span class="recording-indicator"></span>
+          <span id="recording-status-text">錄音進行中</span>
+        </div>
+
+        <div class="timer-display" id="timer-text">00:00</div>
+
+        <div class="waveform-container" id="waveform-visualizer">
+          <div class="waveform-bar"></div><div class="waveform-bar"></div><div class="waveform-bar"></div>
+          <div class="waveform-bar"></div><div class="waveform-bar"></div><div class="waveform-bar"></div>
+          <div class="waveform-bar"></div><div class="waveform-bar"></div><div class="waveform-bar"></div>
+          <div class="waveform-bar"></div><div class="waveform-bar"></div><div class="waveform-bar"></div>
+        </div>
+
+        <div class="chunk-info" id="chunk-info-text">目前尚未開始錄音</div>
+
+        <div class="recorder-btn-group">
+          <button class="btn btn-primary" id="btn-start-record" onclick="startRecording()">
+            <i data-lucide="play"></i> 開始錄音 (同步建檔)
+          </button>
+          <button class="btn btn-secondary btn-disabled" id="btn-pause-record" onclick="togglePauseRecording()">
+            <i data-lucide="pause" id="icon-pause-record"></i> <span id="text-pause-record">暫停錄音</span>
+          </button>
+          <button class="btn btn-danger btn-disabled" id="btn-stop-record" onclick="stopRecordingAndFinalize()">
+            <i data-lucide="square"></i> 停止錄音並完成存檔
+          </button>
+        </div>
+
+        <div style="margin-top: 20px;" id="proceed-proposals-wrap">
+          <button class="btn btn-primary btn-disabled" id="btn-proceed-proposals" onclick="proceedToProposalsView()">
+            <i data-lucide="arrow-right"></i> 錄音逐字稿已就緒，一鍵產出 20 組策略提案
+          </button>
+        </div>
+      </div>
+
+      <!-- 語音防禦辨識視窗 (背景切片與日誌完全不干擾收音) -->
+      <div class="transcript-editor-wrap" id="live-transcript-wrap">
+        <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 8px; flex-wrap: wrap; gap: 8px;">
+          <label class="form-label" style="margin-bottom: 0; font-size: 13px; font-weight: 700; color: var(--text-primary);">
+            <i data-lucide="sparkles" style="width: 14px; height: 14px; margin-right: 4px; vertical-align: middle;"></i>
+            Google 語音即時轉文字 (邊說邊辨識，背景切片與日誌絕不干擾中斷)：
+          </label>
+          <button class="btn btn-secondary btn-sm" onclick="saveTranscriptToSheetManual()">
+            <i data-lucide="save" style="width: 13px; height: 13px;"></i> 一鍵儲存逐字稿至試算表
+          </button>
+        </div>
+        <textarea class="textarea-field" id="live-transcript-editor" style="min-height: 140px; font-size: 14px; line-height: 1.8;" placeholder="點擊「開始錄音」後請直接對著麥克風說話，系統將即時轉出文字，絕不因背景切片或日誌中斷..."></textarea>
+        <div class="form-hint" id="live-transcript-hint">目前已辨識：0 字 (語音守護引擎運作中)</div>
+      </div>
+
+      <!-- 即時執行日誌控制台 -->
+      <div class="log-terminal-container">
+        <div class="log-terminal-header">
+          <div class="log-terminal-title">
+            <i data-lucide="terminal" style="width: 14px; height: 14px;"></i>
+            系統執行日誌 (即時雙軌進度監控)
+          </div>
+          <button class="btn btn-secondary btn-sm" onclick="clearExecutionLog()" style="height: 24px; padding: 0 8px; font-size: 11px;">
+            <i data-lucide="trash-2" style="width: 11px; height: 11px;"></i> 清除日誌
+          </button>
+        </div>
+        <div class="log-terminal-body" id="execution-log-container">
+          <div class="log-entry log-entry-info">[系統待命] 點擊「開始錄音」後，系統將同時在試算表建立紀錄並啟動雙軌傳輸。</div>
+        </div>
+      </div>
+
+      <!-- 切片與逐字稿展示列表 -->
+      <div style="margin-top: 24px;">
+        <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 8px;">
+          <span class="form-label" style="margin-bottom: 0;">已上傳雲端之音檔切片與每分鐘逐字稿儲格紀錄：</span>
+          <span id="chunk-count-badge" class="badge">0 段切片</span>
+        </div>
+        <div class="audio-chunks-list" id="audio-chunks-container">
+          <span style="color: var(--text-muted); font-size: 13px;">暫無切片檔案</span>
+        </div>
+      </div>
+    </section>
+
+    <!-- 步驟 2: AI 階段一：20 組爆款策略提案 -->
+    <section class="panel-section" id="panel-step2">
+      <h2 class="panel-section-title">
+        <i data-lucide="sparkles"></i> AI 階段一：陳修平 7x11 爆款矩陣策略提案 (請單選一組)
+      </h2>
+      
+      <div class="proposals-grid" id="proposals-container">
+        <div style="text-align: center; padding: 40px; color: var(--text-muted);">
+          請先完成錄音並點選「停止錄音並完成存檔」，待逐字稿寫入後再點擊產生提案。
+        </div>
+      </div>
+
+      <div class="action-bar">
+        <button class="btn btn-secondary" onclick="requestProposalsFromAudio()">
+          <i data-lucide="refresh-cw"></i> 重新產生提案
+        </button>
+        <button class="btn btn-primary btn-disabled" id="btn-generate-article" onclick="generateFullArticleAction()">
+          <i data-lucide="arrow-right"></i> 確認選題並撰寫全文
+        </button>
+      </div>
+    </section>
+
+    <!-- 步驟 3: AI 階段二：正式文章編輯、呼吸感審閱與無縫音訊試聽 -->
+    <section class="panel-section" id="panel-step3">
+      <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 16px; flex-wrap: wrap; gap: 8px;">
+        <h2 class="panel-section-title" style="margin-bottom: 0;">
+          <i data-lucide="edit-3"></i> AI 階段二：正式文章編輯與呼吸感審閱
+        </h2>
+        <div style="display: flex; gap: 8px; flex-wrap: wrap;">
+          <button class="btn btn-secondary btn-sm" onclick="syncArticleToSpreadsheetManual()">
+            <i data-lucide="save" style="width: 14px; height: 14px;"></i> 立即同步至試算表格
+          </button>
+        </div>
+      </div>
+
+      <!-- 讀者端多切片主動雙緩衝無縫串流播放器 (第一段播完自動續播第二、三段，絕不觸發下載) -->
+      <div class="audio-player-card" id="seamless-audio-player-card">
+        <div class="player-header">
+          <span><i data-lucide="headphones" style="width: 14px; height: 14px; vertical-align: middle; margin-right: 4px;"></i> 原聲音檔無縫切片串流 (第 1 段播完自動連續播放第 2、3 段)</span>
+          <span id="player-chunk-status">正在載入音訊切片...</span>
+        </div>
+
+        <div class="player-progress-container" id="player-progress-track" onclick="SeamlessAudioPlayer.seek(event)">
+          <div class="player-progress-fill" id="player-progress-bar"></div>
+        </div>
+
+        <div class="player-controls-row">
+          <div class="player-btn-group">
+            <button class="player-ctrl-btn" onclick="SeamlessAudioPlayer.skip(-15)" title="倒退 15 秒">
+              <i data-lucide="rotate-ccw" style="width: 18px; height: 18px;"></i>
+            </button>
+            <button class="player-ctrl-btn player-play-btn" id="player-toggle-btn" onclick="SeamlessAudioPlayer.togglePlay()">
+              <i data-lucide="play" id="player-toggle-icon" style="width: 20px; height: 20px;"></i>
+            </button>
+            <button class="player-ctrl-btn" onclick="SeamlessAudioPlayer.skip(15)" title="快轉 15 秒">
+              <i data-lucide="rotate-cw" style="width: 18px; height: 18px;"></i>
+            </button>
+          </div>
+
+          <div style="font-size: 12px; color: var(--text-muted); font-variant-numeric: tabular-nums;">
+            <span id="player-current-time">00:00</span> / <span id="player-total-duration">--:--</span>
+          </div>
+
+          <button class="player-speed-btn" id="player-speed-indicator" onclick="SeamlessAudioPlayer.cycleSpeed()">
+            1.0x 倍速
+          </button>
+        </div>
+      </div>
+
+      <div class="form-group">
+        <label class="form-label">文章正式標題 (嚴禁 Emoji)：</label>
+        <input type="text" class="input-field" id="post-title-input" placeholder="請輸入文章標題" oninput="handleTitleInput(this.value)">
+      </div>
+
+      <div class="form-group">
+        <label class="form-label">Hook 開頭吸引句 (前 100 字核心痛點直擊)：</label>
+        <input type="text" class="input-field" id="post-hook-input" placeholder="前 100 字強反差開頭" oninput="handleHookInput(this.value)">
+      </div>
+
+      <div class="form-group">
+        <label class="form-label">極致呼吸感內文即時預覽 (含摘要、三大章節、名單磁鐵與 100 分診斷表)：</label>
+        <div class="breathing-preview" id="post-preview-container">
+          <p>尚未生成文章內文。</p>
+        </div>
+      </div>
+
+      <div class="form-group">
+        <label class="form-label">完整 HTML 原始碼即時編輯：</label>
+        <textarea class="textarea-field" id="post-content-html-input" oninput="handleHtmlInput(this.value)"></textarea>
+        <div class="form-hint" id="post-wordcount-hint">目前純文字數：0 字 (可直接發布)</div>
+      </div>
+
+      <div class="form-group">
+        <label class="form-label">100 分制診斷評分：</label>
+        <input type="number" class="input-field" id="post-diagnostic-score-input" value="95" style="max-width: 140px;" oninput="handleScoreInput(this.value)">
+      </div>
+
+      <div class="action-bar">
+        <button class="btn btn-secondary" onclick="ViewSwitcher.navigate('proposals')">
+          <i data-lucide="arrow-left"></i> 返回選題
+        </button>
+        <button class="btn btn-primary" onclick="validateAndGoPublish()">
+          <i data-lucide="arrow-right"></i> 審查通過，前往發布確認
+        </button>
+      </div>
+    </section>
+
+    <!-- 步驟 4: 一鍵發布至 GitHub 確認中樞 -->
+    <section class="panel-section" id="panel-step4">
+      <h2 class="panel-section-title">
+        <i data-lucide="upload-cloud"></i> 發布確認中樞 (發布至 GitHub 獨立文章網頁與方格子首頁)
+      </h2>
+      
+      <p style="margin-bottom: 16px; color: var(--text-secondary); line-height: 1.8;">
+        點選確認發布後，系統將依序執行下列自動化操作：<br>
+        1. 在 GitHub 倉庫根目錄建立自帶完整樣式之 <code>post_[時間戳].html</code> 獨立文章網頁（自帶返回首頁按鈕）。<br>
+        2. 透過 Gemini API 智慧媒合全庫文章，注入專屬「站內延伸閱讀推薦」。<br>
+        3. 生成方格子 (Vocus) 沙龍風格的部落格前台首頁 <code>index.html</code> 與更新全站索引 <code>posts.json</code>。<br>
+        4. 同步更新 Google 試算表 <code>【文章庫_發布總表】</code> 對應列號儲存格。
+      </p>
+
+      <div class="action-bar">
+        <button class="btn btn-secondary" onclick="ViewSwitcher.navigate('editor')">
+          <i data-lucide="arrow-left"></i> 返回修改
+        </button>
+        <button class="btn btn-primary" id="btn-publish-github" onclick="publishToGitHubAction()">
+          <i data-lucide="check-circle-2"></i> 確認並一鍵發布至 GitHub
+        </button>
+      </div>
+    </section>
+  </div>
+
+  <!-- 底部固定導覽列 Bottom Nav (預設聚焦於錄音後台) -->
+  <nav class="bottom-nav">
+    <button class="bottom-nav-item active" id="bnav-record" onclick="ViewSwitcher.navigate('record')">
+      <i data-lucide="mic" style="width: 18px; height: 18px;"></i>
+      <span>錄音逐字稿</span>
+    </button>
+    <button class="bottom-nav-item" id="bnav-proposals" onclick="ViewSwitcher.navigate('proposals')">
+      <i data-lucide="list-checks" style="width: 18px; height: 18px;"></i>
+      <span>選題提案</span>
+    </button>
+    <button class="bottom-nav-item" id="bnav-editor" onclick="ViewSwitcher.navigate('editor')">
+      <i data-lucide="file-text" style="width: 18px; height: 18px;"></i>
+      <span>文章編輯</span>
+    </button>
+    <button class="bottom-nav-item" id="bnav-publish" onclick="ViewSwitcher.navigate('publish')">
+      <i data-lucide="send" style="width: 18px; height: 18px;"></i>
+      <span>一鍵發布</span>
+    </button>
+    <a href="https://alwayslucky2hand-ops.github.io/troypodcatblogpush/" target="_blank" class="bottom-nav-item" id="bnav-blog">
+      <i data-lucide="external-link" style="width: 18px; height: 18px;"></i>
+      <span>前台首頁</span>
+    </a>
+  </nav>
+
+  <!-- 全域 Modal 對話框 -->
+  <div class="modal-backdrop" id="global-modal-backdrop">
+    <div class="modal-dialog">
+      <div class="modal-header">
+        <h3 class="modal-title" id="modal-title-text">提示訊息</h3>
+        <button onclick="ModalController.close()" style="background: none; border: none; cursor: pointer; color: var(--text-secondary);">
+          <i data-lucide="x" style="width: 18px; height: 18px;"></i>
+        </button>
+      </div>
+      <div class="modal-body" id="modal-body-text">確認執行此動作嗎？</div>
+      <div class="modal-footer">
+        <button class="btn btn-secondary btn-sm" id="modal-btn-cancel" onclick="ModalController.close()">取消</button>
+        <button class="btn btn-primary btn-sm" id="modal-btn-confirm">確定</button>
       </div>
     </div>
-    <div class="filter-bar">
-      <input type="text" class="search-input" id="search-input" placeholder="搜尋文章標題、摘要關鍵字..." oninput="filterPosts(this.value)">
-    </div>
-    <div id="posts-container"></div>
   </div>
-  <script>
-    const allPosts = [{"id":"post_1788756142270","title":"創業前三年沒人告訴你的真相：關於「測試錄音測試錄音測試」的底層營運邏輯","hook":"測試錄音測試錄音測試錄音測試錄音測試錄音測試錄音希望不要再有間斷的狀況了因為中斷的狀況真的是很讓人頭痛啊而且也沒有任何的文字可以被記錄下來突然就被擋掉了好像我在做錄製的過程當中不能有所間斷也不能滑動所有的頁面其實這對於我們在錄製來說轉換成其實是非常的不方便非常非常的不方便那我必須在文字停下來的時候趕快按停止錄音然後再按繼續錄音非常的不方便請你要幫我把這個內容去做改善謝謝 測試錄音測試錄音測試錄音測試錄音測試錄音測試錄音希望不要再有間斷的狀況了因為中斷的狀況真的是很讓人頭痛啊而且也沒有任何的文字可以被記錄下來突然就被擋掉了好像我在做錄製的過程當中不能有所間斷也不能滑動所有的頁面其實這對於我們在錄製來說轉換成其實是非常的不方便非常非常的不方便那我必須在文字停下來的時候趕快按停止錄音然後再按繼續錄音非常的不方便請你要幫我把這個內容去做改善謝謝","content_html":"<blockquote><p><strong>【 本文核心摘要 】</strong>：徹底拆解創業者陷入時間貧窮的底層根源，透過系統思維與自動化工作流，把無效工時轉化為長效數位資產。</p></blockquote><p>測試錄音測試錄音測試錄音測試錄音測試錄音測試錄音希望不要再有間斷的狀況了因為中斷的狀況真的是很讓人頭痛啊而且也沒有任何的文字可以被記錄下來突然就被擋掉了好像我在做錄製的過程當中不能有所間斷也不能滑動所有的頁面其實這對於我們在錄製來說轉換成其實是非常的不方便非常非常的不方便那我必須在文字停下來的時候趕快按停止錄音然後再按繼續錄音非常的不方便請你要幫我把這個內容去做改善謝謝</p><p>測試錄音測試錄音測試錄音測試錄音測試錄音測試錄音希望不要再有間斷的狀況了因為中斷的狀況真的是很讓人頭痛啊而且也沒有任何的文字可以被記錄下來突然就被擋掉了好像我在做錄製的過程當中不能有所間斷也不能滑動所有的頁面其實這對於我們在錄製來說轉換成其實是非常的不方便非常非常的不方便那我必須在文字停下來的時候趕快按停止錄音然後再按繼續錄音非常的不方便請你要幫我把這個內容去做改善謝謝</p><p>這不是你能力不夠，而是你的工作流，從一開始就設計錯了。</p><hr><h3>【 問題拆解與震撼觀點 】</h3><p>多數微型創業者最容易陷入的陷阱，叫做「戰術上的勤奮」。</p><p>你以為只要自己多撐一下、少睡兩個小時，事情總會有做完的一天。</p><p>但殘酷的現實是——</p><p>沒有建立標準流程的努力，只會引來更多無序的混亂。</p><p>測試錄音測試錄音測試錄音測試錄音測試錄音測試錄音希望不要再有間斷的狀況了因為中斷的狀況真的是很讓人頭痛啊而且也沒有任何的文字可以被記錄下來突然就被擋掉了好像我在做錄製的過程當中不能有所間斷也不能滑動所有的頁面其實這對於我們在錄製來說轉換成其實是非常的不方便非常非常的不方便那我必須在文字停下來的時候趕快按停止錄音然後再按繼續錄音非常的不方便請你要幫我把這個內容去做改善謝謝</p><h3>【 乾貨解法／案例推進／知識萃取 】</h3><p>普通人的解法，是用肉身去扛所有的突發狀況。</p><p>而真正懂營運的高手，懂得把每一次的重複動作，封裝成一鍵執行的自動化資產。</p><p>當你學會讓數據在雲端自己跑、讓指令替你回答常態提問，你才能真正體會到什麼叫做「被科技贖回時間」。</p><blockquote><p><strong>核心金句</strong>：「創業者最昂貴的成本不是資金，而是你被瑣事消耗殆盡的專注力。」</p></blockquote><h3>【 商業落地與價值延伸 】</h3><p>第一步，盤點你每天重複超過三次的機械式操作。</p><p>第二步，利用現成的雲端試算表與自動化工具，搭起第一條資料輸送帶。</p><p>第三步，把釋放出來的時間，投入到真正能放大客單價與回購率的高價值決策上。</p><p>把時間留給值得深思的戰略，把繁瑣留給不知疲倦的系統。</p><hr><h4>【 品牌專屬私域獎勵／Lead Magnet 】</h4><p>如果你也受夠了每天校長兼撞鐘的窒息感，想取得《創業者時間盤點與自動化工作流地圖》——</p><p>歡迎點擊下方連結預約一對一時間盤點諮詢，我們一起找出你事業中的時間黑洞：</p><p><a href=\"https://rubybranddesign-cloud.github.io/e-line-card-share/troyAIempower/\" target=\"_blank\">點此預約時間盤點一對一諮詢</a></p><p>別忘了點擊左下方按鈕給予共鳴支持，並將這篇文章收藏起來，轉發給身邊正在創業路上苦撐的朋友！</p><hr><p>讓系統為你效勞、讓創業不再過勞！<br>我是特洛伊，一起用ＡＩ守住光陰！</p><hr><div class=\"diagnostic-card\"><div class=\"diagnostic-header\"><strong>文章爆款分數診斷表 (100分制)</strong><span>總分：95 / 100</span></div><div class=\"diagnostic-grid\"><div class=\"diagnostic-item\"><div>黃金 Hook 吸引力</div><strong>19 / 20 分</strong></div><div class=\"diagnostic-item\"><div>對標與主題價值</div><strong>14 / 15 分</strong></div><div class=\"diagnostic-item\"><div>流量密碼疊加度</div><strong>14 / 15 分</strong></div><div class=\"diagnostic-item\"><div>說人話與閱讀節奏</div><strong>15 / 15 分</strong></div><div class=\"diagnostic-item\"><div>情感共鳴與金句</div><strong>14 / 15 分</strong></div><div class=\"diagnostic-item\"><div>私域轉化 CTA 設計</div><strong>19 / 20 分</strong></div></div><p style=\"font-size:12px;color:var(--text-muted);margin-top:12px;\">顧問優化建議：開頭極短句節奏強勁，呼吸感排版充裕，名單磁鐵錨定清晰，能有效驅動讀者點擊預約連結。</p></div>","created_at":"2026-09-07T04:43:02.037Z","diagnostic_score":95,"html_url":"post_1788756142270.html","audio_files":[{"file_id":"1hRorBwnj0nvT8uB9K4VYb6nU-VkP1mOF","name":"chunk_002.webm","chunk_index":2,"stream_url":"https://drive.google.com/uc?export=download&id=1hRorBwnj0nvT8uB9K4VYb6nU-VkP1mOF","size":32876,"local_blob_url":"blob:https://alwayslucky2hand-ops.github.io/52337846-4a39-4050-adea-601cb3e848c3"},{"file_id":"18_vGAJpGZ8pQHMQYo0AL1wks9-uC1-pV","name":"chunk_001.webm","chunk_index":1,"stream_url":"https://drive.google.com/uc?export=download&id=18_vGAJpGZ8pQHMQYo0AL1wks9-uC1-pV","size":953550,"local_blob_url":"blob:https://alwayslucky2hand-ops.github.io/5d84d155-993d-4753-9cff-37323f7cc215"}]}];
-    function renderList(list) {
-      const wrap = document.getElementById('posts-container');
-      wrap.innerHTML = '';
-      if (!list || list.length === 0) {
-        wrap.innerHTML = '<div style="text-align:center;padding:48px;color:#888;">暫無專欄文章</div>';
+
+  <!-- 全域 Toast 容器 -->
+  <div class="toast-container" id="toast-container"></div>
+
+<script>
+  /**
+   * ==========================================================================
+   * 特洛伊 AI 語音客製部落格中樞 - 前端核心業務邏輯庫 (JS.html)
+   * 1. 語音辨識看門狗引擎 (SpeechShield Watchdog & Continuous Listening)
+   * 2. 全集原聲音訊原生串流播放器 (Full-Episode Seamless Stream Player)
+   * 3. 兩階段 AI 創作（20 組選題 ➔ 呼吸感長文）與 GitHub home.html 發布中樞
+   * ==========================================================================
+   */
+
+  /**
+   * EventHub 事件總線
+   */
+  const EventHub = {
+    events: {},
+    on: function (event, handler) {
+      if (!this.events[event]) this.events[event] = [];
+      this.events[event].push(handler);
+    },
+    off: function (event, handler) {
+      if (!this.events[event]) return;
+      this.events[event] = this.events[event].filter(function (h) { return h !== handler; });
+    },
+    emit: function (event, data) {
+      if (!this.events[event]) return;
+      this.events[event].forEach(function (h) { h(data); });
+    }
+  };
+
+  /**
+   * StateStore 全域狀態管理
+   */
+  const StateStore = {
+    STORAGE_KEY: "TROY_AI_ADMIN_STATE_V10",
+    state: {
+      sessionId: "session_" + new Date().getTime(),
+      _rowId: null,
+      audioChunksList: [],
+      masterAudioBlobUrl: "",
+      masterAudioBase64: "",
+      liveTranscriptText: "",
+      proposalsList: [],
+      selectedProposal: null,
+      currentPost: {
+        id: "",
+        title: "",
+        hook: "",
+        content_html: "",
+        diagnostic_score: 95
+      },
+      offlineQueue: [],
+      isAudioFinalized: false
+    },
+
+    init: function () {
+      const saved = localStorage.getItem(this.STORAGE_KEY);
+      if (saved) {
+        try {
+          const parsed = JSON.parse(saved);
+          this.state = Object.assign(this.state, parsed);
+          EventHub.emit("state:restored", this.state);
+        } catch (e) {
+          console.error("狀態還原異常", e);
+        }
+      }
+    },
+
+    getState: function (key) {
+      return key ? this.state[key] : this.state;
+    },
+
+    setState: function (key, value) {
+      this.state[key] = value;
+      this.persistDebounced();
+      EventHub.emit("state:changed:" + key, value);
+      EventHub.emit("state:changed", this.state);
+    },
+
+    updatePostField: function (field, value) {
+      this.state.currentPost[field] = value;
+      this.persistDebounced();
+      EventHub.emit("post:changed", this.state.currentPost);
+    },
+
+    persistDebounced: (function () {
+      let timer = null;
+      return function () {
+        if (timer) clearTimeout(timer);
+        timer = setTimeout(function () {
+          try {
+            localStorage.setItem(StateStore.STORAGE_KEY, JSON.stringify(StateStore.state));
+            const dot = document.getElementById("network-dot");
+            if (dot && navigator.onLine) {
+              dot.classList.add("syncing");
+              setTimeout(function () { dot.classList.remove("syncing"); }, 350);
+            }
+          } catch (e) {}
+        }, 1000);
+      };
+    })(),
+
+    clear: function () {
+      localStorage.removeItem(this.STORAGE_KEY);
+      this.state = {
+        sessionId: "session_" + new Date().getTime(),
+        _rowId: null,
+        audioChunksList: [],
+        masterAudioBlobUrl: "",
+        masterAudioBase64: "",
+        liveTranscriptText: "",
+        proposalsList: [],
+        selectedProposal: null,
+        currentPost: {
+          id: "",
+          title: "",
+          hook: "",
+          content_html: "",
+          diagnostic_score: 95
+        },
+        offlineQueue: [],
+        isAudioFinalized: false
+      };
+      EventHub.emit("state:cleared", this.state);
+    }
+  };
+
+  /**
+   * 執行日誌終端
+   */
+  function addExecutionLog(message, type) {
+    const container = document.getElementById("execution-log-container");
+    if (!container) return;
+
+    const now = new Date();
+    const hh = String(now.getHours()).padStart(2, "0");
+    const mm = String(now.getMinutes()).padStart(2, "0");
+    const ss = String(now.getSeconds()).padStart(2, "0");
+    const timeStr = hh + ":" + mm + ":" + ss;
+    const logTypeClass = type ? "log-entry-" + type : "log-entry-info";
+
+    const entry = document.createElement("div");
+    entry.className = "log-entry " + logTypeClass;
+    entry.textContent = "[" + timeStr + "] " + message;
+
+    container.appendChild(entry);
+    container.scrollTop = container.scrollHeight;
+  }
+
+  function clearExecutionLog() {
+    const container = document.getElementById("execution-log-container");
+    if (container) {
+      container.innerHTML = '<div class="log-entry log-entry-info">[系統待命] 執行日誌已清空。</div>';
+    }
+  }
+
+  /**
+   * 離線防護佇列 OfflineQueue
+   */
+  const OfflineQueue = {
+    init: function () {
+      window.addEventListener("online", function () {
+        const dot = document.getElementById("network-dot");
+        const text = document.getElementById("network-text");
+        if (dot) dot.classList.remove("offline");
+        if (text) text.textContent = "連線已恢復";
+        addExecutionLog("網路連線已恢復，正在排程同步離線任務...", "success");
+        ToastController.show("網路連線已恢復，正在同步離線操作...", "success");
+        OfflineQueue.flush();
+      });
+
+      window.addEventListener("offline", function () {
+        const dot = document.getElementById("network-dot");
+        const text = document.getElementById("network-text");
+        if (dot) dot.classList.add("offline");
+        if (text) text.textContent = "處於離線狀態";
+        addExecutionLog("網路中斷：後續操作將自動存入離線快取佇列", "warn");
+        ToastController.show("網路已中斷，操作將暫存至本機佇列", "info");
+      });
+    },
+
+    push: function (task) {
+      const q = StateStore.getState("offlineQueue") || [];
+      q.push(task);
+      StateStore.setState("offlineQueue", q);
+    },
+
+    flush: async function () {
+      const q = StateStore.getState("offlineQueue") || [];
+      if (q.length === 0) return;
+
+      ToastController.show("正在同步 " + q.length + " 筆離線操作...", "info");
+      while (q.length > 0) {
+        const item = q.shift();
+        try {
+          await callBackendApi(item.action, item.payload);
+        } catch (e) {
+          console.error("離線同步任務失敗", e);
+        }
+      }
+      StateStore.setState("offlineQueue", []);
+      ToastController.show("離線數據已全數同步完成", "success");
+    }
+  };
+
+  /**
+   * ViewSwitcher 視圖切換器 (後台預設進入點鎖定 record)
+   */
+  const ViewSwitcher = {
+    currentRoute: "record",
+    routes: {
+      record: { step: 1, panelId: "panel-step1", pillId: "pill-step1", bnavId: "bnav-record" },
+      proposals: { step: 2, panelId: "panel-step2", pillId: "pill-step2", bnavId: "bnav-proposals" },
+      editor: { step: 3, panelId: "panel-step3", pillId: "pill-step3", bnavId: "bnav-editor" },
+      publish: { step: 4, panelId: "panel-step4", pillId: "pill-step4", bnavId: "bnav-publish" }
+    },
+
+    init: function () {
+      window.addEventListener("hashchange", function () {
+        ViewSwitcher.handleHashChange();
+      });
+      ViewSwitcher.handleHashChange();
+    },
+
+    handleHashChange: function () {
+      const rawHash = (window.location.hash || "").replace("#", "").trim();
+      let routeName = rawHash || "record";
+
+      if (!this.routes[routeName]) {
+        routeName = "record";
+      }
+
+      this.render(routeName);
+    },
+
+    navigate: function (routeName) {
+      if (!this.routes[routeName]) routeName = "record";
+      window.location.hash = routeName;
+    },
+
+    render: function (routeName) {
+      if (!this.routes[routeName]) routeName = "record";
+      this.currentRoute = routeName;
+
+      Object.keys(this.routes).forEach(function (rKey) {
+        const r = ViewSwitcher.routes[rKey];
+        const panel = document.getElementById(r.panelId);
+        const pill = document.getElementById(r.pillId);
+        const bnav = document.getElementById(r.bnavId);
+
+        if (panel) {
+          if (rKey === routeName) {
+            panel.classList.add("active");
+          } else {
+            panel.classList.remove("active");
+          }
+        }
+        if (pill) {
+          if (rKey === routeName) {
+            pill.classList.add("active");
+          } else {
+            pill.classList.remove("active");
+          }
+        }
+        if (bnav) {
+          if (rKey === routeName) {
+            bnav.classList.add("active");
+          } else {
+            bnav.classList.remove("active");
+          }
+        }
+      });
+
+      if (routeName === "editor") {
+        SeamlessAudioPlayer.loadSource();
+      }
+
+      updateSheetRowBadge();
+      window.scrollTo({ top: 0, behavior: "smooth" });
+      if (window.lucide) lucide.createIcons();
+    }
+  };
+
+  function updateSheetRowBadge() {
+    const badge = document.getElementById("sheet-row-badge");
+    const text = document.getElementById("sheet-row-text");
+    const rowId = StateStore.getState("_rowId");
+    if (badge && text) {
+      if (rowId) {
+        badge.style.display = "inline-flex";
+        text.textContent = rowId;
+      } else {
+        badge.style.display = "none";
+      }
+    }
+  }
+
+  /**
+   * Modal 與 Toast 控制中心
+   */
+  const ModalController = {
+    backdrop: null,
+    titleElem: null,
+    bodyElem: null,
+    confirmBtn: null,
+    onConfirmCallback: null,
+
+    init: function () {
+      this.backdrop = document.getElementById("global-modal-backdrop");
+      this.titleElem = document.getElementById("modal-title-text");
+      this.bodyElem = document.getElementById("modal-body-text");
+      this.confirmBtn = document.getElementById("modal-btn-confirm");
+
+      this.confirmBtn.onclick = function () {
+        if (ModalController.onConfirmCallback) ModalController.onConfirmCallback();
+        ModalController.close();
+      };
+
+      window.addEventListener("keydown", function (e) {
+        if (e.key === "Escape") ModalController.close();
+      });
+    },
+
+    open: function (options) {
+      this.titleElem.textContent = options.title || "提示";
+      this.bodyElem.innerHTML = options.content || "";
+      this.onConfirmCallback = options.onConfirm || null;
+      this.confirmBtn.style.display = options.hideConfirm ? "none" : "inline-flex";
+      this.backdrop.classList.add("open");
+      if (window.lucide) lucide.createIcons();
+    },
+
+    close: function () {
+      this.backdrop.classList.remove("open");
+      this.onConfirmCallback = null;
+    }
+  };
+
+  const ToastController = {
+    container: null,
+
+    init: function () {
+      this.container = document.getElementById("toast-container");
+    },
+
+    show: function (message, type, duration) {
+      if (!this.container) this.init();
+      const toast = document.createElement("div");
+      toast.className = "toast-item" + (type ? " " + type : "");
+
+      const textSpan = document.createElement("span");
+      textSpan.textContent = message;
+
+      const closeBtn = document.createElement("button");
+      closeBtn.innerHTML = "&times;";
+      closeBtn.style.cssText = "background:none;border:none;color:inherit;cursor:pointer;font-size:16px;";
+      closeBtn.onclick = function () { toast.remove(); };
+
+      toast.appendChild(textSpan);
+      toast.appendChild(closeBtn);
+      this.container.appendChild(toast);
+
+      setTimeout(function () {
+        toast.style.opacity = "0";
+        toast.style.transition = "opacity 0.3s ease";
+        setTimeout(function () { toast.remove(); }, 300);
+      }, duration || 3500);
+    }
+  };
+
+  /**
+   * 前後端雙棲 API 呼叫介面
+   */
+  const GAS_WEB_URL = "https://script.google.com/macros/s/AKfycbzCW0-mBhRMn3GZPyhxDDGozQgHazJ2qSBUZZG2lhK-dt7g_jTy8RMGx8v7auSwVKmzXw/exec";
+
+  async function callBackendApi(action, payload) {
+    const requestData = Object.assign({ action: action }, payload || {});
+
+    if (!navigator.onLine) {
+      OfflineQueue.push({ action: action, payload: payload });
+      return { status: "offline", message: "已暫存至離線佇列" };
+    }
+
+    if (typeof google !== "undefined" && google.script && google.script.run) {
+      return new Promise(function (resolve, reject) {
+        google.script.run
+          .withSuccessHandler(function (response) {
+            try {
+              const res = typeof response === "string" ? JSON.parse(response) : response;
+              resolve(res);
+            } catch (e) {
+              resolve(response);
+            }
+          })
+          .withFailureHandler(function (error) {
+            reject(error);
+          })
+          .doPost({ postData: { contents: JSON.stringify(requestData) } });
+      });
+    }
+
+    const response = await fetch(GAS_WEB_URL, {
+      method: "POST",
+      headers: { "Content-Type": "text/plain;charset=utf-8" },
+      body: JSON.stringify(requestData)
+    });
+
+    const res = await response.json();
+    return res;
+  }
+
+  function triggerInitDatabase() {
+    ModalController.open({
+      title: "確認初始化試算表資料庫",
+      content: "系統將自動檢查並建立【文章庫_發布總表】、【留言板_互動紀錄】、【成效分析_數據埋點】與【API_KEY】四大工作表，並補齊缺漏表頭欄位。確定執行嗎？",
+      onConfirm: async function () {
+        addExecutionLog("正在呼叫後端執行 initDatabase() 初始化資料庫結構...", "info");
+        ToastController.show("正在初始化資料庫與表頭格式...", "info");
+
+        try {
+          const res = await callBackendApi("initDatabase", {});
+          if (res.status === "success") {
+            addExecutionLog("資料庫初始化完成！四大工作表與表頭規格均已就緒。", "success");
+            ToastController.show("資料庫與工作表標題欄位已完成配置！", "success");
+          } else {
+            addExecutionLog("初始化警告: " + (res.message || "未能獲取狀態"), "warn");
+          }
+        } catch (err) {
+          addExecutionLog("初始化連線異常: " + err.message, "error");
+          ToastController.show("初始化失敗: " + err.message, "error");
+        }
+      }
+    });
+  }
+
+  /**
+   * ==========================================================================
+   * 改善 4：語音辨識看門狗引擎 (SpeechShield Watchdog)
+   * 徹底杜絕滑動螢幕、長時間停頓換氣造成的斷線問題！
+   * ==========================================================================
+   */
+  let speechRecognizer = null;
+  let isSpeechActive = false;
+  let recognitionState = "idle"; // 'idle' | 'starting' | 'listening' | 'stopping'
+  let accumulatedFinalTranscript = "";
+  let speechWatchdogTimer = null;
+
+  function startSpeechRecognitionSafe() {
+    if (!isSpeechActive) return;
+
+    const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
+    if (!SpeechRecognition) {
+      addExecutionLog("瀏覽器未支援 Web Speech API，建議使用 Chrome 瀏覽器", "warn");
+      return;
+    }
+
+    if (recognitionState === "listening" || recognitionState === "starting") {
+      return;
+    }
+
+    if (speechRecognizer) {
+      try {
+        speechRecognizer.onstart = null;
+        speechRecognizer.onresult = null;
+        speechRecognizer.onerror = null;
+        speechRecognizer.onend = null;
+        speechRecognizer.abort();
+      } catch (e) {}
+      speechRecognizer = null;
+    }
+
+    recognitionState = "starting";
+    const rec = new SpeechRecognition();
+    rec.lang = "zh-TW";
+    rec.continuous = true;
+    rec.interimResults = true;
+    rec.maxAlternatives = 1;
+
+    rec.onstart = function () {
+      recognitionState = "listening";
+    };
+
+    rec.onresult = function (event) {
+      let interimStr = "";
+      for (let i = event.resultIndex; i < event.results.length; ++i) {
+        const trans = event.results[i][0].transcript;
+        if (event.results[i].isFinal) {
+          accumulatedFinalTranscript += trans;
+        } else {
+          interimStr += trans;
+        }
+      }
+
+      const fullText = accumulatedFinalTranscript + (interimStr ? (" " + interimStr) : "");
+      const editor = document.getElementById("live-transcript-editor");
+      const hint = document.getElementById("live-transcript-hint");
+
+      if (editor) editor.value = fullText;
+      if (hint) hint.textContent = "目前已辨識：" + fullText.length + " 字 (看門狗持續監聽中)";
+
+      StateStore.state.liveTranscriptText = fullText;
+    };
+
+    rec.onerror = function (event) {
+      recognitionState = "idle";
+      if (isSpeechActive) {
+        setTimeout(function () {
+          if (isSpeechActive && recognitionState === "idle") {
+            startSpeechRecognitionSafe();
+          }
+        }, 100);
+      }
+    };
+
+    rec.onend = function () {
+      recognitionState = "idle";
+      if (isSpeechActive) {
+        setTimeout(function () {
+          if (isSpeechActive && recognitionState === "idle") {
+            startSpeechRecognitionSafe();
+          }
+        }, 50);
+      }
+    };
+
+    try {
+      rec.start();
+      speechRecognizer = rec;
+    } catch (err) {
+      recognitionState = "idle";
+      setTimeout(function () {
+        if (isSpeechActive && recognitionState === "idle") {
+          startSpeechRecognitionSafe();
+        }
+      }, 150);
+    }
+
+    // 啟動每 1200 毫秒之看門狗守護
+    if (!speechWatchdogTimer) {
+      speechWatchdogTimer = setInterval(function () {
+        if (isSpeechActive && recognitionState === "idle") {
+          startSpeechRecognitionSafe();
+        }
+      }, 1200);
+    }
+  }
+
+  async function saveTranscriptToSheetManual() {
+    const editor = document.getElementById("live-transcript-editor");
+    const text = (editor ? editor.value : StateStore.getState("liveTranscriptText") || "").trim();
+
+    if (!text) {
+      ToastController.show("目前逐字稿尚無文字內容", "warn");
+      return;
+    }
+
+    const rowId = StateStore.getState("_rowId");
+    addExecutionLog("正在同步逐字稿全文 (" + text.length + " 字) 至試算表 Col 9...", "info");
+    ToastController.show("正在同步逐字稿至試算表...", "info");
+
+    try {
+      const res = await callBackendApi("updatePost", {
+        _rowId: rowId,
+        id: StateStore.getState("sessionId"),
+        postData: { transcripts: text }
+      });
+
+      if (res.status === "success") {
+        addExecutionLog("逐字稿全文已成功寫入試算表第 " + (res.data._rowId || rowId || "-") + " 列 Col 9 儲存格！", "success");
+        ToastController.show("逐字稿已成功儲存至試算表儲存格！", "success");
+      }
+    } catch (e) {
+      addExecutionLog("逐字稿儲存異常: " + e.message, "error");
+      ToastController.show("儲存異常: " + e.message, "error");
+    }
+  }
+
+  /**
+   * 錄音生命週期與整集無縫母檔累積 (解決第二段無 Header 與 0:00/0:00 問題)
+   */
+  let recordingTimerInterval = null;
+  let recordingSeconds = 0;
+  let activeMediaRecorder = null;
+  let activeAudioStream = null;
+  let isRecordingPaused = false;
+  let chunkCounter = 0;
+  let currentMinuteBlobs = [];
+  let allSessionBlobs = []; // 累積整集完整音訊流，保留 EBML 容器標頭！
+  let activeUploadPromises = [];
+
+  async function startRecording() {
+    let stream = null;
+    try {
+      stream = await navigator.mediaDevices.getUserMedia({ audio: true });
+    } catch (micErr) {
+      addExecutionLog("麥克風存取受阻: " + micErr.message, "error");
+      ToastController.show("無法存取麥克風，請檢查瀏覽器設定: " + micErr.message, "error");
+      return;
+    }
+
+    try {
+      activeAudioStream = stream;
+      recordingSeconds = 0;
+      isRecordingPaused = false;
+      chunkCounter = 0;
+      currentMinuteBlobs = [];
+      allSessionBlobs = [];
+      activeUploadPromises = [];
+      accumulatedFinalTranscript = "";
+
+      const newSessionId = "session_" + new Date().getTime();
+      StateStore.setState("sessionId", newSessionId);
+      StateStore.setState("_rowId", null);
+      StateStore.setState("audioChunksList", []);
+      StateStore.setState("masterAudioBlobUrl", "");
+      StateStore.setState("masterAudioBase64", "");
+      renderAudioChunksAndTranscripts();
+
+      const editor = document.getElementById("live-transcript-editor");
+      if (editor) editor.value = "";
+
+      isSpeechActive = true;
+      startSpeechRecognitionSafe();
+      addExecutionLog("語音看門狗守護引擎啟動 (抗滑動、抗停頓監聽中)", "success");
+
+      document.getElementById("recording-status-badge").style.display = "inline-flex";
+      document.getElementById("recording-status-text").textContent = "錄音中 (全集母檔完整封裝中)";
+      document.getElementById("waveform-visualizer").classList.add("active");
+
+      document.getElementById("btn-start-record").classList.add("btn-disabled");
+      document.getElementById("btn-pause-record").classList.remove("btn-disabled");
+      document.getElementById("btn-stop-record").classList.remove("btn-disabled");
+      document.getElementById("btn-proceed-proposals").classList.add("btn-disabled");
+      updatePauseButtonUi(false);
+
+      callBackendApi("createDraftSession", { sessionId: newSessionId })
+        .then(function (initRes) {
+          if (initRes.status === "success" && initRes.data && initRes.data._rowId) {
+            StateStore.setState("_rowId", initRes.data._rowId);
+            updateSheetRowBadge();
+            addExecutionLog("試算表草稿紀錄已鎖定：第 " + initRes.data._rowId + " 列", "success");
+          }
+        }).catch(function () {});
+
+      const recorder = new MediaRecorder(activeAudioStream, { mimeType: "audio/webm" });
+      recorder.ondataavailable = function (e) {
+        if (e.data && e.data.size > 0) {
+          currentMinuteBlobs.push(e.data);
+          allSessionBlobs.push(e.data);
+        }
+      };
+      recorder.start(1000);
+      activeMediaRecorder = recorder;
+
+      startTimer();
+      ToastController.show("開始錄音，系統正在進行連續高音質收錄！", "info");
+    } catch (err) {
+      addExecutionLog("錄音啟動流程異常: " + err.message, "error");
+    }
+  }
+
+  function packageAndUploadCurrentChunk(isFinal) {
+    if (currentMinuteBlobs.length === 0) return null;
+
+    chunkCounter++;
+    const thisChunkIdx = chunkCounter;
+    const chunkBlob = new Blob(currentMinuteBlobs, { type: "audio/webm" });
+    currentMinuteBlobs = [];
+
+    const localBlobUrl = URL.createObjectURL(chunkBlob);
+    const sizeKb = (chunkBlob.size / 1024).toFixed(1);
+    const chunkLabel = isFinal ? ("第 " + thisChunkIdx + " 段 (最終切片)") : ("第 " + thisChunkIdx + " 分鐘音檔");
+
+    addExecutionLog(chunkLabel + " 已封裝 (" + sizeKb + " KB)，正在直傳 Google Drive 備份...", "info");
+
+    const uploadTask = new Promise(function (resolve) {
+      const reader = new FileReader();
+      reader.onloadend = async function () {
+        const rawResult = String(reader.result || "");
+        const commaPos = rawResult.indexOf(",");
+        const pureBase64 = (commaPos !== -1 ? rawResult.substring(commaPos + 1) : rawResult).trim();
+
+        try {
+          const res = await callBackendApi("saveAudioChunk", {
+            sessionId: StateStore.getState("sessionId"),
+            chunkIndex: thisChunkIdx,
+            base64Data: pureBase64,
+            mimeType: "audio/webm",
+            _rowId: StateStore.getState("_rowId")
+          });
+
+          if (res && res.status === "success" && res.data) {
+            if (res.data._rowId) {
+              StateStore.setState("_rowId", res.data._rowId);
+              updateSheetRowBadge();
+            }
+
+            const chunkData = Object.assign({}, res.data.chunk, {
+              local_blob_url: localBlobUrl
+            });
+
+            const currentChunks = StateStore.getState("audioChunksList").concat([chunkData]);
+            StateStore.setState("audioChunksList", currentChunks);
+            renderAudioChunksAndTranscripts();
+
+            addExecutionLog(chunkLabel + " 雲端硬碟建檔成功 (" + (res.data.chunk.name || "chunk.webm") + ")", "success");
+          }
+        } catch (uploadErr) {
+          addExecutionLog(chunkLabel + " 上傳警示: " + uploadErr.message, "warn");
+        } finally {
+          resolve();
+        }
+      };
+      reader.readAsDataURL(chunkBlob);
+    });
+
+    activeUploadPromises.push(uploadTask);
+    return uploadTask;
+  }
+
+  function startTimer() {
+    const timerText = document.getElementById("timer-text");
+    const chunkInfo = document.getElementById("chunk-info-text");
+
+    recordingTimerInterval = setInterval(function () {
+      if (isRecordingPaused) return;
+
+      recordingSeconds++;
+      const mins = String(Math.floor(recordingSeconds / 60)).padStart(2, "0");
+      const secs = String(recordingSeconds % 60).padStart(2, "0");
+      timerText.textContent = mins + ":" + secs;
+
+      const currentChunkNumber = Math.floor(recordingSeconds / 60) + 1;
+      const secondsInCurrentChunk = recordingSeconds % 60;
+      chunkInfo.textContent = "第 " + currentChunkNumber + " 分鐘錄音中 (本段已錄 " + secondsInCurrentChunk + " / 60 秒)";
+
+      if (recordingSeconds > 0 && recordingSeconds % 60 === 0) {
+        packageAndUploadCurrentChunk(false);
+      }
+    }, 1000);
+  }
+
+  function togglePauseRecording() {
+    if (!activeMediaRecorder) return;
+
+    if (!isRecordingPaused) {
+      activeMediaRecorder.pause();
+      isRecordingPaused = true;
+      isSpeechActive = false;
+      recognitionState = "idle";
+      if (speechRecognizer) {
+        try { speechRecognizer.stop(); } catch (e) {}
+      }
+      document.getElementById("recording-status-text").textContent = "錄音已暫停";
+      document.getElementById("waveform-visualizer").classList.remove("active");
+      updatePauseButtonUi(true);
+      addExecutionLog("使用者暫停錄音與辨識", "info");
+      ToastController.show("錄音已暫停", "info");
+    } else {
+      activeMediaRecorder.resume();
+      isRecordingPaused = false;
+      isSpeechActive = true;
+      startSpeechRecognitionSafe();
+      document.getElementById("recording-status-text").textContent = "錄音中 (全集母檔完整封裝中)";
+      document.getElementById("waveform-visualizer").classList.add("active");
+      updatePauseButtonUi(false);
+      addExecutionLog("使用者繼續錄音", "info");
+      ToastController.show("錄音已繼續", "info");
+    }
+  }
+
+  function updatePauseButtonUi(paused) {
+    const icon = document.getElementById("icon-pause-record");
+    const text = document.getElementById("text-pause-record");
+    if (paused) {
+      icon.setAttribute("data-lucide", "play");
+      text.textContent = "繼續錄音";
+    } else {
+      icon.setAttribute("data-lucide", "pause");
+      text.textContent = "暫停錄音";
+    }
+    if (window.lucide) lucide.createIcons();
+  }
+
+  async function stopRecordingAndFinalize() {
+    addExecutionLog("正在停止錄音，封裝整集完整母檔...", "info");
+    clearInterval(recordingTimerInterval);
+    clearInterval(speechWatchdogTimer);
+    speechWatchdogTimer = null;
+    isSpeechActive = false;
+    recognitionState = "idle";
+
+    if (speechRecognizer) {
+      try {
+        speechRecognizer.onend = null;
+        speechRecognizer.stop();
+      } catch (e) {}
+    }
+
+    if (activeMediaRecorder && activeMediaRecorder.state !== "inactive") {
+      activeMediaRecorder.stop();
+    }
+    if (activeAudioStream) {
+      activeAudioStream.getTracks().forEach(function (track) { track.stop(); });
+    }
+
+    isRecordingPaused = false;
+    packageAndUploadCurrentChunk(true);
+
+    document.getElementById("recording-status-badge").style.display = "none";
+    document.getElementById("waveform-visualizer").classList.remove("active");
+    document.getElementById("btn-start-record").classList.remove("btn-disabled");
+    document.getElementById("btn-pause-record").classList.add("btn-disabled");
+    document.getElementById("btn-stop-record").classList.add("btn-disabled");
+    updatePauseButtonUi(false);
+
+    // 核心突破：將全集音訊封裝為一體化完整母檔 (Master Audio Blob)
+    const masterBlob = new Blob(allSessionBlobs, { type: "audio/webm" });
+    const masterBlobUrl = URL.createObjectURL(masterBlob);
+    StateStore.setState("masterAudioBlobUrl", masterBlobUrl);
+
+    // 同步轉換為 Base64 供 GitHub 發布時直接上傳整集
+    const masterReader = new FileReader();
+    masterReader.onloadend = function () {
+      const rawRes = String(masterReader.result || "");
+      const cIdx = rawRes.indexOf(",");
+      const pB64 = (cIdx !== -1 ? rawRes.substring(cIdx + 1) : rawRes).trim();
+      StateStore.setState("masterAudioBase64", pB64);
+    };
+    masterReader.readAsDataURL(masterBlob);
+
+    await new Promise(function (resolve) { setTimeout(resolve, 1500); });
+    await Promise.all(activeUploadPromises);
+    await saveTranscriptToSheetManual();
+
+    StateStore.setState("isAudioFinalized", true);
+    addExecutionLog("全集音訊母檔封裝完成！具備完整容器標頭，支援連續零延遲播放！", "success");
+
+    const proceedBtn = document.getElementById("btn-proceed-proposals");
+    if (proceedBtn) proceedBtn.classList.remove("btn-disabled");
+
+    ToastController.show("整集錄音封裝完成，逐字稿已寫入試算表！", "success");
+  }
+
+  function proceedToProposalsView() {
+    ViewSwitcher.navigate("proposals");
+    requestProposalsFromAudio();
+  }
+
+  function renderAudioChunksAndTranscripts() {
+    const container = document.getElementById("audio-chunks-container");
+    const badge = document.getElementById("chunk-count-badge");
+    if (!container) return;
+
+    container.innerHTML = "";
+    const chunks = StateStore.getState("audioChunksList") || [];
+    if (badge) badge.textContent = chunks.length + " 段切片";
+
+    if (chunks.length === 0) {
+      container.innerHTML = '<span style="color: var(--text-muted); font-size: 13px;">暫無切片檔案</span>';
+      return;
+    }
+
+    chunks.forEach(function (chunk, idx) {
+      const item = document.createElement("div");
+      item.className = "chunk-card";
+      const directUrl = chunk.stream_url || ("https://drive.google.com/file/d/" + chunk.file_id + "/view");
+
+      item.innerHTML =
+        '<div class="chunk-card-header">' +
+          '<span><i data-lucide="music-2" style="width: 14px; height: 14px; vertical-align: middle; margin-right: 4px;"></i> 第 ' + (idx + 1) + ' 分鐘切片 (' + (chunk.name || "chunk.webm") + ')</span>' +
+          '<a href="' + directUrl + '" target="_blank" class="chunk-link-tag">' +
+            '<i data-lucide="external-link" style="width: 11px; height: 11px;"></i> 雲端檢視' +
+          '</a>' +
+        '</div>' +
+        '<div style="font-size: 12px; color: var(--text-muted);">' +
+          '檔案大小：' + (chunk.size ? (chunk.size / 1024).toFixed(1) + ' KB' : '就緒') + ' ｜ 已寫入試算表 Col 5' +
+        '</div>';
+
+      container.appendChild(item);
+    });
+    if (window.lucide) lucide.createIcons();
+  }
+
+  /**
+   * 步驟 2：AI 產出 20 組策略提案
+   */
+  async function requestProposalsFromAudio() {
+    const editor = document.getElementById("live-transcript-editor");
+    const rawTranscript = (editor ? editor.value : StateStore.getState("liveTranscriptText") || "").trim();
+
+    if (!rawTranscript) {
+      ToastController.show("尚未有任何逐字稿內容，請先錄音或手動輸入觀點", "warn");
+      return;
+    }
+
+    addExecutionLog("正在深度閱讀分析逐字稿 (" + rawTranscript.length + " 字)，產出 20 組專屬提案...", "info");
+    ToastController.show("AI 正在深度閱讀逐字稿觀點並產出 20 組策略提案...", "info");
+
+    const container = document.getElementById("proposals-container");
+    container.innerHTML =
+      '<div style="text-align: center; padding: 40px; color: var(--text-muted);">' +
+        '<p>AI 正在閱讀逐字稿核心論點並產出 20 組專屬提案，請稍候...</p>' +
+      '</div>';
+
+    try {
+      const res = await callBackendApi("generateProposals", {
+        sessionId: StateStore.getState("sessionId"),
+        _rowId: StateStore.getState("_rowId"),
+        transcripts: rawTranscript
+      });
+
+      if (res.status === "success" && res.data) {
+        if (res.data._rowId) {
+          StateStore.setState("_rowId", res.data._rowId);
+          updateSheetRowBadge();
+        }
+
+        const proposals = res.data.proposals || res.data;
+        StateStore.setState("proposalsList", proposals);
+        renderProposalsList(proposals);
+
+        addExecutionLog("20 組策略提案生成完畢並已寫入試算表 Col 10", "success");
+        ToastController.show("已成功產出 20 組爆款提案！", "success");
+      } else {
+        container.innerHTML = '<div style="text-align: center; padding: 40px; color: #D9383A;">產生提案失敗：' + (res.message || "未知錯誤") + '</div>';
+      }
+    } catch (err) {
+      container.innerHTML = '<div style="text-align: center; padding: 40px; color: #D9383A;">通訊異常：' + err.message + '</div>';
+    }
+  }
+
+  function renderProposalsList(proposals) {
+    const container = document.getElementById("proposals-container");
+    container.innerHTML = "";
+
+    if (!proposals || proposals.length === 0) {
+      container.innerHTML = '<div style="text-align: center; padding: 40px; color: var(--text-muted);">尚無提案資料。</div>';
+      return;
+    }
+
+    proposals.forEach(function (prop, idx) {
+      const card = document.createElement("div");
+      card.className = "proposal-card";
+      card.id = "proposal-card-" + idx;
+      card.onclick = function () { selectProposal(idx); };
+
+      card.innerHTML =
+        '<input type="radio" name="proposal_radio" class="proposal-radio" id="prop-radio-' + idx + '">' +
+        '<div style="flex: 1;">' +
+          '<div class="proposal-title">' + (idx + 1) + '. ' + prop.title + '</div>' +
+          '<div class="proposal-tags">' +
+            '<span class="badge">' + prop.theme + '</span>' +
+            '<span class="badge">' + prop.traffic_code + '</span>' +
+          '</div>' +
+          '<div class="proposal-angle">戰略切入點：' + prop.strategy_angle + '</div>' +
+        '</div>';
+
+      container.appendChild(card);
+    });
+
+    document.getElementById("btn-generate-article").classList.add("btn-disabled");
+    if (window.lucide) lucide.createIcons();
+  }
+
+  async function selectProposal(index) {
+    const proposals = StateStore.getState("proposalsList");
+    const selected = proposals[index];
+    StateStore.setState("selectedProposal", selected);
+
+    const radios = document.getElementsByName("proposal_radio");
+    const cards = document.querySelectorAll(".proposal-card");
+
+    cards.forEach(function (c, idx) {
+      if (idx === index) {
+        c.classList.add("selected");
+        radios[idx].checked = true;
+      } else {
+        c.classList.remove("selected");
+        radios[idx].checked = false;
+      }
+    });
+
+    document.getElementById("btn-generate-article").classList.remove("btn-disabled");
+    addExecutionLog("已選定提案：《" + selected.title + "》", "info");
+
+    callBackendApi("recordSelectedProposal", {
+      _rowId: StateStore.getState("_rowId"),
+      selectedProposal: selected
+    }).catch(function () {});
+  }
+
+  /**
+   * 步驟 3：撰寫正式長文 (改善 1：總標題自動校準後綴、子標題專業化)
+   */
+  async function generateFullArticleAction() {
+    const selected = StateStore.getState("selectedProposal");
+    if (!selected) {
+      ToastController.show("請先單選一組提案方向", "error");
+      return;
+    }
+
+    const editor = document.getElementById("live-transcript-editor");
+    const rawTranscript = (editor ? editor.value : StateStore.getState("liveTranscriptText") || "").trim();
+
+    addExecutionLog("啟動階段二：依據選定標題《" + selected.title + "》撰寫極致呼吸感長文...", "info");
+    ToastController.show("AI 正在將您的逐字稿觀點轉換為正式品牌長文...", "info");
+
+    try {
+      const res = await callBackendApi("generateFullArticle", {
+        _rowId: StateStore.getState("_rowId"),
+        selectedProposal: selected,
+        transcripts: rawTranscript
+      });
+
+      if (res.status === "success" && res.data) {
+        if (res.data._rowId) {
+          StateStore.setState("_rowId", res.data._rowId);
+          updateSheetRowBadge();
+        }
+
+        const articleData = res.data.article || res.data;
+
+        // 強制校準標題結尾為 ｜特洛伊AI賦能師
+        let calibratedTitle = (articleData.title || selected.title || "創業者專欄").replace(/\[.*?\]/g, "").trim();
+        calibratedTitle = calibratedTitle.replace(/\s*｜\s*特洛伊AI賦能師$/, "") + " ｜特洛伊AI賦能師";
+
+        const postObj = {
+          id: articleData.id || ("post_" + new Date().getTime()),
+          title: calibratedTitle,
+          hook: articleData.hook,
+          content_html: articleData.content_html,
+          diagnostic_score: articleData.diagnostic_score || 95
+        };
+
+        StateStore.setState("currentPost", postObj);
+
+        document.getElementById("post-title-input").value = postObj.title;
+        document.getElementById("post-hook-input").value = postObj.hook;
+        document.getElementById("post-content-html-input").value = postObj.content_html;
+        document.getElementById("post-diagnostic-score-input").value = postObj.diagnostic_score;
+        document.getElementById("post-preview-container").innerHTML = postObj.content_html;
+        updateWordCountDisplay(postObj.content_html);
+
+        // 核心加固：自動載入整集無縫母檔音訊
+        SeamlessAudioPlayer.loadSource();
+
+        addExecutionLog("全文撰寫完成！已套用專業段落子標題與標題後綴", "success");
+        ToastController.show("全文撰寫完成！已載入編輯器並同步試算表", "success");
+        ViewSwitcher.navigate("editor");
+      } else {
+        addExecutionLog("產生全文失敗: " + res.message, "error");
+        ToastController.show("產生全文失敗: " + res.message, "error");
+      }
+    } catch (err) {
+      addExecutionLog("呼叫全文生成通訊異常: " + err.message, "error");
+      ToastController.show("呼叫失敗: " + err.message, "error");
+    }
+  }
+
+  function handleTitleInput(val) {
+    let clean = (val || "").trim();
+    StateStore.updatePostField("title", clean);
+    triggerAutoSyncDebounced();
+  }
+  function handleHookInput(val) { StateStore.updatePostField("hook", val); triggerAutoSyncDebounced(); }
+  function handleHtmlInput(val) {
+    StateStore.updatePostField("content_html", val);
+    document.getElementById("post-preview-container").innerHTML = val;
+    updateWordCountDisplay(val);
+    triggerAutoSyncDebounced();
+  }
+  function handleScoreInput(val) { StateStore.updatePostField("diagnostic_score", Number(val) || 95); triggerAutoSyncDebounced(); }
+
+  const triggerAutoSyncDebounced = (function () {
+    let timer = null;
+    return function () {
+      if (timer) clearTimeout(timer);
+      timer = setTimeout(function () {
+        syncArticleToSpreadsheetManual(true);
+      }, 1500);
+    };
+  })();
+
+  async function syncArticleToSpreadsheetManual(silent) {
+    const post = StateStore.getState("currentPost");
+    const rowId = StateStore.getState("_rowId");
+
+    if (!post || (!post.title && !post.content_html)) return;
+
+    try {
+      const res = await callBackendApi("updatePost", {
+        _rowId: rowId,
+        id: post.id,
+        postData: {
+          title: post.title,
+          hook: post.hook,
+          content_html: post.content_html,
+          diagnostic_score: post.diagnostic_score
+        }
+      });
+
+      if (res.status === "success") {
+        if (res.data && res.data._rowId) {
+          StateStore.setState("_rowId", res.data._rowId);
+          updateSheetRowBadge();
+        }
+        if (!silent) {
+          addExecutionLog("編輯內容已同步至試算表第 " + rowId + " 列", "success");
+          ToastController.show("已成功儲存至試算表！", "success");
+        }
+      }
+    } catch (e) {
+      if (!silent) ToastController.show("試算表同步異常: " + e.message, "error");
+    }
+  }
+
+  function getCleanText(htmlStr) {
+    const tmp = document.createElement("div");
+    tmp.innerHTML = htmlStr || "";
+    return (tmp.textContent || tmp.innerText || "").trim();
+  }
+
+  function updateWordCountDisplay(htmlContent) {
+    const count = getCleanText(htmlContent).length;
+    const hintElem = document.getElementById("post-wordcount-hint");
+    if (hintElem) {
+      hintElem.textContent = "目前純文字數：" + count + " 字 (可直接發布)";
+    }
+  }
+
+  function validateAndGoPublish() {
+    let title = (document.getElementById("post-title-input").value || "").trim();
+    const contentHtml = (document.getElementById("post-content-html-input").value || "").trim();
+
+    if (!title) {
+      ToastController.show("文章標題不得為空", "error");
+      return;
+    }
+    if (!contentHtml) {
+      ToastController.show("請先在編輯器輸入文章內文", "error");
+      return;
+    }
+
+    // 改善 1：驗證前確保總標題帶有 ｜特洛伊AI賦能師 後綴
+    if (!title.endsWith("｜特洛伊AI賦能師")) {
+      title = title.replace(/\s*｜\s*特洛伊AI賦能師$/, "") + " ｜特洛伊AI賦能師";
+      document.getElementById("post-title-input").value = title;
+    }
+
+    const emojiRegex = /[\u{1F600}-\u{1F64F}\u{1F300}-\u{1F5FF}\u{1F680}-\u{1F6FF}\u{2600}-\u{26FF}\u{2700}-\u{27BF}\u{1F900}-\u{1F9FF}\u{1FA70}-\u{1FAFF}]/u;
+    if (emojiRegex.test(title) || emojiRegex.test(contentHtml)) {
+      ToastController.show("標題或內文偵測到 Emoji 表情符號，請全數移除", "error");
+      return;
+    }
+
+    StateStore.updatePostField("title", title);
+    StateStore.updatePostField("content_html", contentHtml);
+    ViewSwitcher.navigate("publish");
+  }
+
+  /**
+   * 步驟 4: 一鍵發布至 GitHub (改善 3：回傳獨立前台專欄首頁 home.html)
+   */
+  async function publishToGitHubAction() {
+    let title = (document.getElementById("post-title-input").value || "").trim();
+    const contentHtml = (document.getElementById("post-content-html-input").value || "").trim();
+    const hook = (document.getElementById("post-hook-input").value || "").trim();
+    const score = Number(document.getElementById("post-diagnostic-score-input").value) || 95;
+
+    if (!title || !contentHtml) {
+      ToastController.show("標題與內文不可為空", "error");
+      return;
+    }
+
+    if (!title.endsWith("｜特洛伊AI賦能師")) {
+      title = title.replace(/\s*｜\s*特洛伊AI賦能師$/, "") + " ｜特洛伊AI賦能師";
+    }
+
+    ModalController.open({
+      title: "確認發布至 GitHub 獨立網頁",
+      content: "確定要將《" + title + "》發布為獨立網頁並更新方格子沙龍首頁嗎？",
+      onConfirm: async function () {
+        addExecutionLog("正在生成獨立專欄與上傳音檔至 GitHub 倉庫...", "info");
+        ToastController.show("正在發布至 GitHub 獨立網頁與沙龍首頁...", "info");
+        const publishBtn = document.getElementById("btn-publish-github");
+        publishBtn.classList.add("btn-disabled");
+
+        const curPost = StateStore.getState("currentPost") || {};
+        const postId = curPost.id || ("post_" + new Date().getTime());
+
+        // 將切片清單連同全集音訊母檔 Base64 送給後端推播
+        let audioFiles = StateStore.getState("audioChunksList") || [];
+        const masterB64 = StateStore.getState("masterAudioBase64");
+        if (masterB64) {
+          audioFiles = [{ raw_base64: masterB64, name: "full_master.webm" }].concat(audioFiles);
+        }
+
+        try {
+          const res = await callBackendApi("publishToGitHub", {
+            _rowId: StateStore.getState("_rowId"),
+            postData: {
+              id: postId,
+              title: title,
+              hook: hook,
+              content_html: contentHtml,
+              audio_files: audioFiles,
+              transcripts: StateStore.getState("liveTranscriptText") || "",
+              diagnostic_score: score
+            }
+          });
+
+          if (res.status === "success") {
+            const publishedSingleUrl = res.data.published_url || ("https://alwayslucky2hand-ops.github.io/troypodcatblogpush/" + postId + ".html");
+            // 改善 3：首頁網址固定指向獨立前台 home.html，絕不誤入後台根網址
+            const publishedPortalUrl = res.data.portal_url || "https://alwayslucky2hand-ops.github.io/troypodcatblogpush/home.html";
+
+            addExecutionLog("發布成功！獨立文章: " + publishedSingleUrl, "success");
+            ToastController.show("文章已成功發布！", "success");
+
+            showPublishSuccessModal(publishedPortalUrl, publishedSingleUrl, title);
+            StateStore.clear();
+          } else {
+            addExecutionLog("發布失敗: " + res.message, "error");
+            ToastController.show("發布失敗: " + res.message, "error");
+            publishBtn.classList.remove("btn-disabled");
+          }
+        } catch (err) {
+          addExecutionLog("發布異常: " + err.message, "error");
+          ToastController.show("發布異常: " + err.message, "error");
+          publishBtn.classList.remove("btn-disabled");
+        }
+      }
+    });
+  }
+
+  function showPublishSuccessModal(portalUrl, articleUrl, postTitle) {
+    const contentHtml =
+      '<div style="font-size: 14px; line-height: 1.8; color: var(--text-primary);">' +
+        '<p style="margin-bottom: 14px; font-weight: 600; color: #16A34A;">恭喜！文章《' + postTitle + '》已成功發布並建立公開網頁！</p>' +
+
+        '<div style="background: var(--bg-card); border: 1px solid var(--border-light); border-radius: 6px; padding: 12px; margin-bottom: 12px;">' +
+          '<div style="font-size: 12px; font-weight: 700; color: var(--text-secondary); margin-bottom: 4px;">網址 1：特洛伊專欄前台首頁 (方格子沙龍獨立首頁，讀者瀏覽總覽)</div>' +
+          '<div style="font-size: 12px; word-break: break-all; color: #2563EB; margin-bottom: 8px;">' + portalUrl + '</div>' +
+          '<div style="display: flex; gap: 8px;">' +
+            '<button class="btn btn-secondary btn-sm" onclick="copyToClipboard(\'' + portalUrl + '\', \'首頁網址已複製\')">' +
+              '<i data-lucide="copy" style="width: 12px; height: 12px;"></i> 一鍵複製首頁網址' +
+            '</button>' +
+            '<a href="' + portalUrl + '" target="_blank" class="btn btn-primary btn-sm">' +
+              '<i data-lucide="external-link" style="width: 12px; height: 12px;"></i> 前往沙龍首頁' +
+            '</a>' +
+          '</div>' +
+        '</div>' +
+
+        '<div style="background: var(--bg-card); border: 1px solid var(--border-light); border-radius: 6px; padding: 12px;">' +
+          '<div style="font-size: 12px; font-weight: 700; color: var(--text-secondary); margin-bottom: 4px;">網址 2：本篇獨立文章公開網頁 (自帶完整樣式與返回 home.html 按鈕)</div>' +
+          '<div style="font-size: 12px; word-break: break-all; color: #2563EB; margin-bottom: 8px;">' + articleUrl + '</div>' +
+          '<div style="display: flex; gap: 8px;">' +
+            '<button class="btn btn-secondary btn-sm" onclick="copyToClipboard(\'' + articleUrl + '\', \'單篇網址已複製\')">' +
+              '<i data-lucide="copy" style="width: 12px; height: 12px;"></i> 一鍵複製文章網址' +
+            '</button>' +
+            '<a href="' + articleUrl + '" target="_blank" class="btn btn-primary btn-sm">' +
+              '<i data-lucide="external-link" style="width: 12px; height: 12px;"></i> 前往文章頁' +
+            '</a>' +
+          '</div>' +
+        '</div>' +
+      '</div>';
+
+    ModalController.open({
+      title: "文章發布成功！公開網址已生成",
+      content: contentHtml,
+      hideConfirm: true
+    });
+  }
+
+  function copyToClipboard(text, successMsg) {
+    if (navigator.clipboard) {
+      navigator.clipboard.writeText(text).then(function () {
+        ToastController.show(successMsg || "已成功複製到剪貼簿！", "success");
+      });
+    } else {
+      const ta = document.createElement("textarea");
+      ta.value = text;
+      document.body.appendChild(ta);
+      ta.select();
+      document.execCommand("copy");
+      document.body.removeChild(ta);
+      ToastController.show(successMsg || "已成功複製到剪貼簿！", "success");
+    }
+  }
+
+  function confirmClearDraft() {
+    ModalController.open({
+      title: "清除本機草稿",
+      content: "確定要清空所有錄音切片、逐字稿與編輯中草稿嗎？此操作無法復原。",
+      onConfirm: function () {
+        StateStore.clear();
+        accumulatedFinalTranscript = "";
+        const editor = document.getElementById("live-transcript-editor");
+        if (editor) editor.value = "";
+        document.getElementById("post-title-input").value = "";
+        document.getElementById("post-hook-input").value = "";
+        document.getElementById("post-content-html-input").value = "";
+        document.getElementById("post-preview-container").innerHTML = "<p>尚未生成文章內文。</p>";
+        updateWordCountDisplay("");
+        renderAudioChunksAndTranscripts();
+        renderProposalsList([]);
+        updateSheetRowBadge();
+        addExecutionLog("草稿與本機快取已重設", "info");
+        ToastController.show("草稿已成功清除", "success");
+        ViewSwitcher.navigate("record");
+      }
+    });
+  }
+
+  /**
+   * ==========================================================================
+   * 改善 2：全集原聲音訊原生串流播放器 (Seamless Full-Stream Player)
+   * 解決 0:00 / 0:00 問題，整集連續播放超過數分鐘，絕不彈出下載！
+   * ==========================================================================
+   */
+  const SeamlessAudioPlayer = {
+    audio: new Audio(),
+    isPlaying: false,
+    playbackRate: 1.0,
+    speeds: [1.0, 1.25, 1.5, 2.0],
+
+    init: function () {
+      this.bindEvents();
+    },
+
+    bindEvents: function () {
+      const a = this.audio;
+      a.addEventListener("timeupdate", function () {
+        SeamlessAudioPlayer.onTimeUpdate();
+      });
+      a.addEventListener("ended", function () {
+        SeamlessAudioPlayer.isPlaying = false;
+        SeamlessAudioPlayer.updatePlayIcon(false);
+        document.getElementById("player-chunk-status").textContent = "全集音訊已播畢";
+      });
+      a.addEventListener("loadedmetadata", function () {
+        const d = a.duration || 0;
+        const durationElem = document.getElementById("player-total-duration");
+        if (durationElem) durationElem.textContent = SeamlessAudioPlayer.formatTime(d);
+        document.getElementById("player-chunk-status").textContent = "全集原聲音檔就緒 (連續串流播畢不中斷)";
+      });
+      a.addEventListener("error", function (e) {
+        console.warn("音訊載入狀態微調", e);
+      });
+    },
+
+    loadSource: function () {
+      const masterUrl = StateStore.getState("masterAudioBlobUrl");
+      let targetUrl = masterUrl;
+
+      if (!targetUrl) {
+        const chunks = StateStore.getState("audioChunksList") || [];
+        if (chunks.length > 0) {
+          targetUrl = chunks[0].local_blob_url || chunks[0].stream_url || "";
+        }
+      }
+
+      if (targetUrl) {
+        if (this.audio.src !== targetUrl) {
+          this.audio.src = targetUrl;
+          this.audio.playbackRate = this.playbackRate;
+          this.audio.preload = "auto";
+          this.audio.load();
+        }
+        document.getElementById("player-chunk-status").textContent = "原聲音檔載入完成，點擊播放整集連續收聽";
+      } else {
+        document.getElementById("player-chunk-status").textContent = "尚未載入錄音音訊";
+      }
+    },
+
+    togglePlay: function () {
+      if (!this.audio.src) {
+        this.loadSource();
+      }
+      if (!this.audio.src) {
+        ToastController.show("目前尚未有可播放之音檔", "info");
         return;
       }
-      const hero = list[0];
-      const heroElem = document.createElement('a');
-      heroElem.className = 'hero-card';
-      heroElem.href = hero.html_url || (hero.id + '.html');
-      const heroDate = hero.created_at ? new Date(hero.created_at).toLocaleDateString('zh-TW') : '最新力作';
-      const heroAudioCount = (hero.audio_files && hero.audio_files.length) || 0;
-      heroElem.innerHTML = '<div style="margin-bottom:8px;font-size:11px;font-weight:700;color:var(--text-muted);letter-spacing:0.05em;">最新精選發布 ｜ ' + heroDate + '</div><div class="hero-title">' + hero.title + '</div><div class="hero-hook">' + (hero.hook || '') + '</div><div class="hero-footer"><span><i data-lucide="headphones" style="width:13px;height:13px;vertical-align:middle;margin-right:4px;"></i> ' + heroAudioCount + ' 段原聲音訊切片</span><span style="font-weight:600;color:var(--text-primary);">閱讀全文 &rarr;</span></div>';
-      wrap.appendChild(heroElem);
-      if (list.length > 1) {
-        const grid = document.createElement('div');
-        grid.className = 'posts-grid';
-        for (let i = 1; i < list.length; i++) {
-          const p = list[i];
-          const card = document.createElement('a');
-          card.className = 'post-card';
-          card.href = p.html_url || (p.id + '.html');
-          const pDate = p.created_at ? new Date(p.created_at).toLocaleDateString('zh-TW') : '';
-          card.innerHTML = '<div><div class="post-title">' + p.title + '</div><div class="post-hook">' + (p.hook || '') + '</div></div><div class="post-footer"><span>' + pDate + '</span><span>閱讀 &rarr;</span></div>';
-          grid.appendChild(card);
-        }
-        wrap.appendChild(grid);
+
+      if (this.isPlaying) {
+        this.pause();
+      } else {
+        this.play();
       }
-      lucide.createIcons();
+    },
+
+    play: function () {
+      this.audio.playbackRate = this.playbackRate;
+      const playPromise = this.audio.play();
+
+      if (playPromise !== undefined) {
+        playPromise.then(function () {
+          SeamlessAudioPlayer.isPlaying = true;
+          SeamlessAudioPlayer.updatePlayIcon(true);
+          document.getElementById("player-chunk-status").textContent = "正在連續播放整集原聲專欄...";
+        }).catch(function (err) {
+          console.warn("播放提示: " + err.message);
+          ToastController.show("請點擊播放鍵開始收聽", "info");
+        });
+      }
+    },
+
+    pause: function () {
+      this.audio.pause();
+      this.isPlaying = false;
+      this.updatePlayIcon(false);
+      document.getElementById("player-chunk-status").textContent = "播放已暫停";
+    },
+
+    onTimeUpdate: function () {
+      const cur = this.audio.currentTime || 0;
+      const dur = this.audio.duration || 1;
+      const percent = (cur / dur) * 100;
+
+      const pBar = document.getElementById("player-progress-bar");
+      const pTime = document.getElementById("player-current-time");
+      if (pBar) pBar.style.width = Math.min(100, percent) + "%";
+      if (pTime) pTime.textContent = this.formatTime(cur);
+    },
+
+    skip: function (seconds) {
+      if (!this.audio.src) return;
+      this.audio.currentTime = Math.max(0, Math.min(this.audio.duration || 9999, this.audio.currentTime + seconds));
+    },
+
+    seek: function (e) {
+      if (!this.audio.duration) return;
+      const rect = e.currentTarget.getBoundingClientRect();
+      const clickRatio = (e.clientX - rect.left) / rect.width;
+      this.audio.currentTime = clickRatio * this.audio.duration;
+      if (!this.isPlaying) this.play();
+    },
+
+    cycleSpeed: function () {
+      const curIdx = this.speeds.indexOf(this.playbackRate);
+      const nextIdx = (curIdx + 1) % this.speeds.length;
+      this.playbackRate = this.speeds[nextIdx];
+      this.audio.playbackRate = this.playbackRate;
+
+      document.getElementById("player-speed-indicator").textContent = this.playbackRate.toFixed(2) + "x 倍速";
+    },
+
+    updatePlayIcon: function (playing) {
+      const icon = document.getElementById("player-toggle-icon");
+      if (icon) {
+        icon.setAttribute("data-lucide", playing ? "pause" : "play");
+        if (window.lucide) lucide.createIcons();
+      }
+    },
+
+    formatTime: function (seconds) {
+      const s = Math.floor(seconds || 0);
+      const mins = String(Math.floor(s / 60)).padStart(2, "0");
+      const secs = String(s % 60).padStart(2, "0");
+      return mins + ":" + secs;
     }
-    function filterPosts(kw) {
-      const q = (kw || '').trim().toLowerCase();
-      const res = allPosts.filter(function(p) {
-        return (p.title || '').toLowerCase().indexOf(q) !== -1 || (p.hook || '').toLowerCase().indexOf(q) !== -1;
-      });
-      renderList(res);
-    }
-    renderList(allPosts);
-  </script>
+  };
+
+  /**
+   * DOMContentLoaded 初始化入口
+   */
+  document.addEventListener("DOMContentLoaded", function () {
+    ModalController.init();
+    ToastController.init();
+    OfflineQueue.init();
+    StateStore.init();
+    SeamlessAudioPlayer.init();
+    ViewSwitcher.init();
+    if (window.lucide) lucide.createIcons();
+
+    EventHub.on("state:restored", function (savedState) {
+      renderAudioChunksAndTranscripts();
+      if (savedState.proposalsList && savedState.proposalsList.length > 0) {
+        renderProposalsList(savedState.proposalsList);
+      }
+      if (savedState.liveTranscriptText) {
+        const editor = document.getElementById("live-transcript-editor");
+        if (editor) editor.value = savedState.liveTranscriptText;
+      }
+      if (savedState.currentPost) {
+        document.getElementById("post-title-input").value = savedState.currentPost.title || "";
+        document.getElementById("post-hook-input").value = savedState.currentPost.hook || "";
+        document.getElementById("post-content-html-input").value = savedState.currentPost.content_html || "";
+        document.getElementById("post-diagnostic-score-input").value = savedState.currentPost.diagnostic_score || 95;
+        document.getElementById("post-preview-container").innerHTML = savedState.currentPost.content_html || "<p>尚未生成文章內文。</p>";
+        updateWordCountDisplay(savedState.currentPost.content_html || "");
+      }
+      if (savedState.isAudioFinalized) {
+        const proceedBtn = document.getElementById("btn-proceed-proposals");
+        if (proceedBtn) proceedBtn.classList.remove("btn-disabled");
+      }
+      updateSheetRowBadge();
+      addExecutionLog("後台創作者工作階段已成功還原", "info");
+    });
+  });
+</script>
 </body>
 </html>
