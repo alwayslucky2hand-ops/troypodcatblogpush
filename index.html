@@ -5,7 +5,7 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>特洛伊 AI 語音客製部落格中樞</title>
   
-  <!-- 字體與圖示庫支援 (GitHub Pages 部署必備) -->
+  <!-- 字體與圖示庫支援 (GitHub Pages 與 GAS 雙棲部署) -->
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+TC:wght@400;500;600;700&display=swap" rel="stylesheet">
@@ -686,7 +686,7 @@
     cursor: pointer;
   }
 
-  /* 診斷卡樣式 */
+  /* 後台專用評分診斷卡樣式 */
   .diagnostic-card {
     background-color: var(--bg-card);
     border: 1px solid var(--border-light);
@@ -898,7 +898,7 @@
           <i data-lucide="trash-2" style="width: 14px; height: 14px;"></i> 清除草稿
         </button>
         <!-- 前往前台沙龍首頁 (開新分頁瀏覽 GitHub 發布的前台) -->
-        <a href="https://alwayslucky2hand-ops.github.io/troypodcatblogpush/" target="_blank" class="btn btn-secondary btn-sm">
+        <a href="https://alwayslucky2hand-ops.github.io/troypodcatblogpush/home.html" target="_blank" class="btn btn-secondary btn-sm">
           <i data-lucide="external-link" style="width: 14px; height: 14px;"></i> 前往前台專欄首頁
         </a>
       </div>
@@ -1040,7 +1040,7 @@
         </div>
       </div>
 
-      <!-- 讀者端多切片主動雙緩衝無縫串流播放器 (第一段播完自動續播第二、三段，絕不觸發下載) -->
+      <!-- 讀者端多切片主動雙緩衝無縫串流播放器 (含 WebM 時長看門狗修復，徹底告別 Infinity:NaN) -->
       <div class="audio-player-card" id="seamless-audio-player-card">
         <div class="player-header">
           <span><i data-lucide="headphones" style="width: 14px; height: 14px; vertical-align: middle; margin-right: 4px;"></i> 原聲音檔無縫切片串流 (第 1 段播完自動連續播放第 2、3 段)</span>
@@ -1085,7 +1085,7 @@
       </div>
 
       <div class="form-group">
-        <label class="form-label">極致呼吸感內文即時預覽 (含摘要、三大章節、名單磁鐵與 100 分診斷表)：</label>
+        <label class="form-label">極致呼吸感內文即時預覽 (含摘要、三大章節與文末個人品牌預約專區)：</label>
         <div class="breathing-preview" id="post-preview-container">
           <p>尚未生成文章內文。</p>
         </div>
@@ -1097,9 +1097,14 @@
         <div class="form-hint" id="post-wordcount-hint">目前純文字數：0 字 (可直接發布)</div>
       </div>
 
+      <!-- 後台創作者專用 100 分評分表 (純創作者內部檢視，前台閱讀頁不顯示) -->
       <div class="form-group">
-        <label class="form-label">100 分制診斷評分：</label>
+        <label class="form-label">
+          <i data-lucide="shield-check" style="width: 14px; height: 14px; margin-right: 4px; vertical-align: middle;"></i>
+          後台專用 100 分制診斷評分 (僅存後台與試算表，讀者前台發布頁不會呈現)：
+        </label>
         <input type="number" class="input-field" id="post-diagnostic-score-input" value="95" style="max-width: 140px;" oninput="handleScoreInput(this.value)">
+        <div class="form-hint">此評分專供後台數據庫存檔與自媒體品質管控，絕不會出現在對外公開網頁中。</div>
       </div>
 
       <div class="action-bar">
@@ -1120,10 +1125,10 @@
       
       <p style="margin-bottom: 16px; color: var(--text-secondary); line-height: 1.8;">
         點選確認發布後，系統將依序執行下列自動化操作：<br>
-        1. 在 GitHub 倉庫根目錄建立自帶完整樣式之 <code>post_[時間戳].html</code> 獨立文章網頁（自帶返回首頁按鈕）。<br>
-        2. 透過 Gemini API 智慧媒合全庫文章，注入專屬「站內延伸閱讀推薦」。<br>
-        3. 生成方格子 (Vocus) 沙龍風格的部落格前台首頁 <code>index.html</code> 與更新全站索引 <code>posts.json</code>。<br>
-        4. 同步更新 Google 試算表 <code>【文章庫_發布總表】</code> 對應列號儲存格。
+        1. 在 GitHub 倉庫根目錄建立自帶原生音訊串流、Google 登入留言、按愛心與完整數據埋點之 <code>post_[時間戳].html</code> 獨立文章網頁（自帶返回首頁按鈕）。<br>
+        2. 全面隱蔽 100 分診斷表（僅後台可見），內文 CTA 僅保留純文字互動呼籲（愛心/轉發），文末個人品牌預約按鈕完整保留。<br>
+        3. 生成仿方格子 (Vocus) 沙龍風格的部落格前台首頁 <code>home.html</code> 與更新全站索引 <code>posts.json</code>。<br>
+        4. 同步更新 Google 試算表 <code>【文章庫_發布總表】</code> 與 <code>【成效分析_數據埋點】</code> 對應列號儲存格。
       </p>
 
       <div class="action-bar">
@@ -1155,7 +1160,7 @@
       <i data-lucide="send" style="width: 18px; height: 18px;"></i>
       <span>一鍵發布</span>
     </button>
-    <a href="https://alwayslucky2hand-ops.github.io/troypodcatblogpush/" target="_blank" class="bottom-nav-item" id="bnav-blog">
+    <a href="https://alwayslucky2hand-ops.github.io/troypodcatblogpush/home.html" target="_blank" class="bottom-nav-item" id="bnav-blog">
       <i data-lucide="external-link" style="width: 18px; height: 18px;"></i>
       <span>前台首頁</span>
     </a>
@@ -1184,10 +1189,10 @@
 <script>
   /**
    * ==========================================================================
-   * 特洛伊 AI 語音客製部落格中樞 - 前端核心業務邏輯庫 (JS.html)
+   * 特洛伊 AI 語音客製部落格中樞 - 前端核心業務邏輯庫
    * 1. 語音辨識看門狗引擎 (SpeechShield Watchdog & Continuous Listening)
-   * 2. 全集原聲音訊原生串流播放器 (Full-Episode Seamless Stream Player)
-   * 3. 兩階段 AI 創作（20 組選題 ➔ 呼吸感長文）與 GitHub home.html 發布中樞
+   * 2. 全集原聲音訊原生串流播放器 (解決 Infinity:NaN 時長與無縫連續播放)
+   * 3. 兩階段 AI 創作（20 組選題 ➔ 呼吸感長文）與 GitHub 發布中樞
    * ==========================================================================
    */
 
@@ -1214,13 +1219,14 @@
    * StateStore 全域狀態管理
    */
   const StateStore = {
-    STORAGE_KEY: "TROY_AI_ADMIN_STATE_V10",
+    STORAGE_KEY: "TROY_AI_ADMIN_STATE_V11",
     state: {
       sessionId: "session_" + new Date().getTime(),
       _rowId: null,
       audioChunksList: [],
       masterAudioBlobUrl: "",
       masterAudioBase64: "",
+      recordingDuration: 0,
       liveTranscriptText: "",
       proposalsList: [],
       selectedProposal: null,
@@ -1290,6 +1296,7 @@
         audioChunksList: [],
         masterAudioBlobUrl: "",
         masterAudioBase64: "",
+        recordingDuration: 0,
         liveTranscriptText: "",
         proposalsList: [],
         selectedProposal: null,
@@ -1616,14 +1623,11 @@
   }
 
   /**
-   * ==========================================================================
-   * 改善 4：語音辨識看門狗引擎 (SpeechShield Watchdog)
-   * 徹底杜絕滑動螢幕、長時間停頓換氣造成的斷線問題！
-   * ==========================================================================
+   * 語音辨識看門狗引擎 (SpeechShield Watchdog)
    */
   let speechRecognizer = null;
   let isSpeechActive = false;
-  let recognitionState = "idle"; // 'idle' | 'starting' | 'listening' | 'stopping'
+  let recognitionState = "idle";
   let accumulatedFinalTranscript = "";
   let speechWatchdogTimer = null;
 
@@ -1717,7 +1721,6 @@
       }, 150);
     }
 
-    // 啟動每 1200 毫秒之看門狗守護
     if (!speechWatchdogTimer) {
       speechWatchdogTimer = setInterval(function () {
         if (isSpeechActive && recognitionState === "idle") {
@@ -1758,7 +1761,7 @@
   }
 
   /**
-   * 錄音生命週期與整集無縫母檔累積 (解決第二段無 Header 與 0:00/0:00 問題)
+   * 錄音生命週期與整集母檔累積
    */
   let recordingTimerInterval = null;
   let recordingSeconds = 0;
@@ -1767,7 +1770,7 @@
   let isRecordingPaused = false;
   let chunkCounter = 0;
   let currentMinuteBlobs = [];
-  let allSessionBlobs = []; // 累積整集完整音訊流，保留 EBML 容器標頭！
+  let allSessionBlobs = [];
   let activeUploadPromises = [];
 
   async function startRecording() {
@@ -1796,6 +1799,7 @@
       StateStore.setState("audioChunksList", []);
       StateStore.setState("masterAudioBlobUrl", "");
       StateStore.setState("masterAudioBase64", "");
+      StateStore.setState("recordingDuration", 0);
       renderAudioChunksAndTranscripts();
 
       const editor = document.getElementById("live-transcript-editor");
@@ -1908,6 +1912,8 @@
       if (isRecordingPaused) return;
 
       recordingSeconds++;
+      StateStore.setState("recordingDuration", recordingSeconds);
+
       const mins = String(Math.floor(recordingSeconds / 60)).padStart(2, "0");
       const secs = String(recordingSeconds % 60).padStart(2, "0");
       timerText.textContent = mins + ":" + secs;
@@ -1996,12 +2002,14 @@
     document.getElementById("btn-stop-record").classList.add("btn-disabled");
     updatePauseButtonUi(false);
 
-    // 核心突破：將全集音訊封裝為一體化完整母檔 (Master Audio Blob)
+    // 精確記錄最終錄音總時長 (秒數)，徹底解決 WebM 無 header 導致之 Infinity:NaN 問題
+    const finalDuration = recordingSeconds;
+    StateStore.setState("recordingDuration", finalDuration);
+
     const masterBlob = new Blob(allSessionBlobs, { type: "audio/webm" });
     const masterBlobUrl = URL.createObjectURL(masterBlob);
     StateStore.setState("masterAudioBlobUrl", masterBlobUrl);
 
-    // 同步轉換為 Base64 供 GitHub 發布時直接上傳整集
     const masterReader = new FileReader();
     masterReader.onloadend = function () {
       const rawRes = String(masterReader.result || "");
@@ -2016,7 +2024,7 @@
     await saveTranscriptToSheetManual();
 
     StateStore.setState("isAudioFinalized", true);
-    addExecutionLog("全集音訊母檔封裝完成！具備完整容器標頭，支援連續零延遲播放！", "success");
+    addExecutionLog("全集音訊母檔封裝完成 (" + finalDuration + " 秒)！具備完整容器標頭，支援連續零延遲播放！", "success");
 
     const proceedBtn = document.getElementById("btn-proceed-proposals");
     if (proceedBtn) proceedBtn.classList.remove("btn-disabled");
@@ -2173,7 +2181,7 @@
   }
 
   /**
-   * 步驟 3：撰寫正式長文 (改善 1：總標題自動校準後綴、子標題專業化)
+   * 步驟 3：撰寫正式長文 (自動校準標題結尾、摒棄框架化子標題)
    */
   async function generateFullArticleAction() {
     const selected = StateStore.getState("selectedProposal");
@@ -2224,10 +2232,9 @@
         document.getElementById("post-preview-container").innerHTML = postObj.content_html;
         updateWordCountDisplay(postObj.content_html);
 
-        // 核心加固：自動載入整集無縫母檔音訊
         SeamlessAudioPlayer.loadSource();
 
-        addExecutionLog("全文撰寫完成！已套用專業段落子標題與標題後綴", "success");
+        addExecutionLog("全文撰寫完成！已套用抓心感記憶點子標題與標題後綴", "success");
         ToastController.show("全文撰寫完成！已載入編輯器並同步試算表", "success");
         ViewSwitcher.navigate("editor");
       } else {
@@ -2324,7 +2331,6 @@
       return;
     }
 
-    // 改善 1：驗證前確保總標題帶有 ｜特洛伊AI賦能師 後綴
     if (!title.endsWith("｜特洛伊AI賦能師")) {
       title = title.replace(/\s*｜\s*特洛伊AI賦能師$/, "") + " ｜特洛伊AI賦能師";
       document.getElementById("post-title-input").value = title;
@@ -2342,7 +2348,7 @@
   }
 
   /**
-   * 步驟 4: 一鍵發布至 GitHub (改善 3：回傳獨立前台專欄首頁 home.html)
+   * 步驟 4: 一鍵發布至 GitHub
    */
   async function publishToGitHubAction() {
     let title = (document.getElementById("post-title-input").value || "").trim();
@@ -2371,11 +2377,12 @@
         const curPost = StateStore.getState("currentPost") || {};
         const postId = curPost.id || ("post_" + new Date().getTime());
 
-        // 將切片清單連同全集音訊母檔 Base64 送給後端推播
         let audioFiles = StateStore.getState("audioChunksList") || [];
         const masterB64 = StateStore.getState("masterAudioBase64");
+        const audioDuration = StateStore.getState("recordingDuration") || 0;
+
         if (masterB64) {
-          audioFiles = [{ raw_base64: masterB64, name: "full_master.webm" }].concat(audioFiles);
+          audioFiles = [{ raw_base64: masterB64, name: "full_master.webm", duration: audioDuration }].concat(audioFiles);
         }
 
         try {
@@ -2387,6 +2394,7 @@
               hook: hook,
               content_html: contentHtml,
               audio_files: audioFiles,
+              audio_duration: audioDuration,
               transcripts: StateStore.getState("liveTranscriptText") || "",
               diagnostic_score: score
             }
@@ -2394,7 +2402,6 @@
 
           if (res.status === "success") {
             const publishedSingleUrl = res.data.published_url || ("https://alwayslucky2hand-ops.github.io/troypodcatblogpush/" + postId + ".html");
-            // 改善 3：首頁網址固定指向獨立前台 home.html，絕不誤入後台根網址
             const publishedPortalUrl = res.data.portal_url || "https://alwayslucky2hand-ops.github.io/troypodcatblogpush/home.html";
 
             addExecutionLog("發布成功！獨立文章: " + publishedSingleUrl, "success");
@@ -2496,10 +2503,8 @@
   }
 
   /**
-   * ==========================================================================
-   * 改善 2：全集原聲音訊原生串流播放器 (Seamless Full-Stream Player)
-   * 解決 0:00 / 0:00 問題，整集連續播放超過數分鐘，絕不彈出下載！
-   * ==========================================================================
+   * 全集原聲音訊原生串流播放器 (含 WebM 時長看門狗與修復)
+   * 徹底杜絕 01:08 / Infinity:NaN 問題，精準顯示總時間！
    */
   const SeamlessAudioPlayer = {
     audio: new Audio(),
@@ -2522,14 +2527,45 @@
         document.getElementById("player-chunk-status").textContent = "全集音訊已播畢";
       });
       a.addEventListener("loadedmetadata", function () {
-        const d = a.duration || 0;
-        const durationElem = document.getElementById("player-total-duration");
-        if (durationElem) durationElem.textContent = SeamlessAudioPlayer.formatTime(d);
-        document.getElementById("player-chunk-status").textContent = "全集原聲音檔就緒 (連續串流播畢不中斷)";
+        SeamlessAudioPlayer.resolveAccurateDuration();
+      });
+      a.addEventListener("durationchange", function () {
+        SeamlessAudioPlayer.resolveAccurateDuration();
       });
       a.addEventListener("error", function (e) {
         console.warn("音訊載入狀態微調", e);
       });
+    },
+
+    resolveAccurateDuration: function () {
+      const a = this.audio;
+      const durationElem = document.getElementById("player-total-duration");
+      let d = a.duration;
+
+      // 核心修復：WebM 錄音無 header 導致 duration 為 Infinity 或 NaN
+      if (!isFinite(d) || isNaN(d) || d <= 0) {
+        const savedDuration = StateStore.getState("recordingDuration") || 0;
+        if (savedDuration > 0) {
+          d = savedDuration;
+          if (durationElem) durationElem.textContent = SeamlessAudioPlayer.formatTime(d);
+        } else {
+          // Chrome WebM duration hack: 移動指標至極大值觸發瀏覽器計算真實時長
+          a.currentTime = 1e10;
+          const onTimeFix = function () {
+            a.removeEventListener("timeupdate", onTimeFix);
+            const fixedD = a.duration;
+            a.currentTime = 0;
+            if (isFinite(fixedD) && !isNaN(fixedD) && fixedD > 0) {
+              if (durationElem) durationElem.textContent = SeamlessAudioPlayer.formatTime(fixedD);
+            }
+          };
+          a.addEventListener("timeupdate", onTimeFix, { once: true });
+        }
+      } else {
+        if (durationElem) durationElem.textContent = SeamlessAudioPlayer.formatTime(d);
+      }
+
+      document.getElementById("player-chunk-status").textContent = "全集原聲音檔就緒 (連續串流播畢不中斷)";
     },
 
     loadSource: function () {
@@ -2550,6 +2586,7 @@
           this.audio.preload = "auto";
           this.audio.load();
         }
+        this.resolveAccurateDuration();
         document.getElementById("player-chunk-status").textContent = "原聲音檔載入完成，點擊播放整集連續收聽";
       } else {
         document.getElementById("player-chunk-status").textContent = "尚未載入錄音音訊";
@@ -2597,25 +2634,47 @@
 
     onTimeUpdate: function () {
       const cur = this.audio.currentTime || 0;
-      const dur = this.audio.duration || 1;
-      const percent = (cur / dur) * 100;
+      let dur = this.audio.duration;
 
+      if (!isFinite(dur) || isNaN(dur) || dur <= 0) {
+        dur = StateStore.getState("recordingDuration") || 0;
+      }
+
+      const percent = dur > 0 ? (cur / dur) * 100 : 0;
       const pBar = document.getElementById("player-progress-bar");
       const pTime = document.getElementById("player-current-time");
-      if (pBar) pBar.style.width = Math.min(100, percent) + "%";
+      const durationElem = document.getElementById("player-total-duration");
+
+      if (pBar) pBar.style.width = Math.min(100, Math.max(0, percent)) + "%";
       if (pTime) pTime.textContent = this.formatTime(cur);
+
+      if (durationElem && dur > 0) {
+        const curDurText = durationElem.textContent;
+        if (curDurText === "--:--" || curDurText.indexOf("NaN") !== -1 || curDurText.indexOf("Infinity") !== -1) {
+          durationElem.textContent = this.formatTime(dur);
+        }
+      }
     },
 
     skip: function (seconds) {
       if (!this.audio.src) return;
-      this.audio.currentTime = Math.max(0, Math.min(this.audio.duration || 9999, this.audio.currentTime + seconds));
+      let maxDur = this.audio.duration;
+      if (!isFinite(maxDur) || isNaN(maxDur) || maxDur <= 0) {
+        maxDur = StateStore.getState("recordingDuration") || 9999;
+      }
+      this.audio.currentTime = Math.max(0, Math.min(maxDur, this.audio.currentTime + seconds));
     },
 
     seek: function (e) {
-      if (!this.audio.duration) return;
+      let dur = this.audio.duration;
+      if (!isFinite(dur) || isNaN(dur) || dur <= 0) {
+        dur = StateStore.getState("recordingDuration") || 0;
+      }
+      if (!dur) return;
+
       const rect = e.currentTarget.getBoundingClientRect();
       const clickRatio = (e.clientX - rect.left) / rect.width;
-      this.audio.currentTime = clickRatio * this.audio.duration;
+      this.audio.currentTime = clickRatio * dur;
       if (!this.isPlaying) this.play();
     },
 
@@ -2637,6 +2696,7 @@
     },
 
     formatTime: function (seconds) {
+      if (!isFinite(seconds) || isNaN(seconds) || seconds < 0) return "00:00";
       const s = Math.floor(seconds || 0);
       const mins = String(Math.floor(s / 60)).padStart(2, "0");
       const secs = String(s % 60).padStart(2, "0");
@@ -2675,6 +2735,9 @@
       }
       if (savedState.isAudioFinalized) {
         const proceedBtn = document.getElementById("btn-proceed-proposals");
+        if (proceedBtn) proceedBtn.classList.remove("btn-disabled");
+      }
+      -proposals");
         if (proceedBtn) proceedBtn.classList.remove("btn-disabled");
       }
       updateSheetRowBadge();
