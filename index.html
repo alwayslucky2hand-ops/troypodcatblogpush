@@ -1264,11 +1264,13 @@ a {
 <script>
 /**
  * ==========================================================================
- * 特洛伊 AI 語音客製部落格中樞 - 前端核心業務邏輯庫 (JS.html)
- * 1. 語音辨識看門狗引擎 (SpeechShield Watchdog & Continuous Listening)
- * 2. 全集原聲音訊原生串流播放器 (解決 Infinity:NaN 時長與無縫連續播放)
- * 3. 兩階段 AI 創作（20 組選題 ➔ 呼吸感長文）與 GitHub 發布中樞
- * 4. 歷史文章庫管理中樞（即時檢視、載入編輯更新、雙向刪除）
+ * 特洛伊 AI 語音客製部落格中樞 - 前端核心業務邏輯庫 (JS.html / <script>)
+ * 涵蓋核心優化：
+ * 1. 強化版語音守護引擎 (SpeechShield Heartbeat Watchdog)：徹底阻斷 UI 變更導致辨識中斷與死鎖
+ * 2. 局部容器圖示渲染 (Scoped Lucide Rendering)：切片產生時絕不破壞麥克風串流與逐字稿節點
+ * 3. 全集原聲音訊連續播放器 (SeamlessAudioPlayer)：精確秒數時長解析，根除 Infinity:NaN
+ * 4. 兩階段 AI 選題與發布流 (陳修平 7x11 矩陣提案 ➔ 呼吸感長文 ➔ GitHub 實體檔案)
+ * 5. 歷史文章管理庫存 (即時檢視、載入重修、三表聯動徹底刪除)
  * ==========================================================================
  */
 
@@ -1391,7 +1393,7 @@ const StateStore = {
 };
 
 /**
- * 執行日誌終端
+ * 執行日誌控制台
  */
 function addExecutionLog(message, type) {
   const container = document.getElementById("execution-log-container");
@@ -1469,7 +1471,7 @@ const OfflineQueue = {
 };
 
 /**
- * ViewSwitcher 視圖切換器 (包含 5 大工作面板與路由)
+ * ViewSwitcher 視圖切換器
  */
 const ViewSwitcher = {
   currentRoute: "record",
@@ -1673,8 +1675,7 @@ async function callBackendApi(action, payload) {
     body: JSON.stringify(requestData)
   });
 
-  const res = await response.json();
-  return res;
+  return await response.json();
 }
 
 function triggerInitDatabase() {
@@ -1702,27 +1703,39 @@ function triggerInitDatabase() {
 }
 
 /**
- * 語音辨識看門狗引擎 (SpeechShield Watchdog)
+ * 強化版語音辨識看門狗引擎 (徹底防止 UI 變更或音訊切片造成的中斷與死鎖)
  */
 let speechRecognizer = null;
 let isSpeechActive = false;
-let recognitionState = "idle";
+let recognitionState = "idle"; // "idle" | "starting" | "listening"
 let accumulatedFinalTranscript = "";
 let speechWatchdogTimer = null;
+let speechRestartTimeout = null;
+let lastSpeechHeartbeat = Date.now();
+
+function scheduleSpeechRestart(delayMs) {
+  if (!isSpeechActive) return;
+  if (speechRestartTimeout) clearTimeout(speechRestartTimeout);
+  speechRestartTimeout = setTimeout(function () {
+    if (isSpeechActive && recognitionState !== "listening") {
+      startSpeechRecognitionSafe();
+    }
+  }, delayMs || 250);
+}
 
 function startSpeechRecognitionSafe() {
   if (!isSpeechActive) return;
 
   const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
   if (!SpeechRecognition) {
-    addExecutionLog("瀏覽器未支援 Web Speech API，建議使用 Chrome 瀏覽器", "warn");
+    addExecutionLog("瀏覽器未支援 Web Speech API，請使用 Chrome 瀏覽器", "warn");
     return;
   }
 
-  if (recognitionState === "listening" || recognitionState === "starting") {
-    return;
-  }
+  // 若已在聆聽監聽中，不重複調用啟動
+  if (recognitionState === "listening") return;
 
+  // 安全清理舊實例
   if (speechRecognizer) {
     try {
       speechRecognizer.onstart = null;
@@ -1735,6 +1748,8 @@ function startSpeechRecognitionSafe() {
   }
 
   recognitionState = "starting";
+  lastSpeechHeartbeat = Date.now();
+
   const rec = new SpeechRecognition();
   rec.lang = "zh-TW";
   rec.continuous = true;
@@ -1743,9 +1758,11 @@ function startSpeechRecognitionSafe() {
 
   rec.onstart = function () {
     recognitionState = "listening";
+    lastSpeechHeartbeat = Date.now();
   };
 
   rec.onresult = function (event) {
+    lastSpeechHeartbeat = Date.now();
     let interimStr = "";
     for (let i = event.resultIndex; i < event.results.length; ++i) {
       const trans = event.results[i][0].transcript;
@@ -1761,31 +1778,21 @@ function startSpeechRecognitionSafe() {
     const hint = document.getElementById("live-transcript-hint");
 
     if (editor) editor.value = fullText;
-    if (hint) hint.textContent = "目前已辨識：" + fullText.length + " 字 (看門狗持續監聽中)";
+    if (hint) hint.textContent = "目前已辨識：" + fullText.length + " 字 (連續辨識守護中)";
 
     StateStore.state.liveTranscriptText = fullText;
   };
 
   rec.onerror = function (event) {
     recognitionState = "idle";
-    if (isSpeechActive) {
-      setTimeout(function () {
-        if (isSpeechActive && recognitionState === "idle") {
-          startSpeechRecognitionSafe();
-        }
-      }, 100);
-    }
+    // 忽略常見的無聲與微小網路震盪，排程 250ms 冷卻重啟
+    scheduleSpeechRestart(250);
   };
 
   rec.onend = function () {
     recognitionState = "idle";
-    if (isSpeechActive) {
-      setTimeout(function () {
-        if (isSpeechActive && recognitionState === "idle") {
-          startSpeechRecognitionSafe();
-        }
-      }, 50);
-    }
+    // 釋放麥克風後 250ms 溫和重啟，避免衝突
+    scheduleSpeechRestart(250);
   };
 
   try {
@@ -1793,16 +1800,18 @@ function startSpeechRecognitionSafe() {
     speechRecognizer = rec;
   } catch (err) {
     recognitionState = "idle";
-    setTimeout(function () {
-      if (isSpeechActive && recognitionState === "idle") {
-        startSpeechRecognitionSafe();
-      }
-    }, 150);
+    scheduleSpeechRestart(300);
   }
 
+  // 獨立心跳檢測看門狗計時器 (每 1.2 秒檢測一次健康狀態)
   if (!speechWatchdogTimer) {
     speechWatchdogTimer = setInterval(function () {
-      if (isSpeechActive && recognitionState === "idle") {
+      if (!isSpeechActive) return;
+      const now = Date.now();
+      
+      // 破除死鎖：如果處於 idle，或卡在 starting 超過 2 秒未就緒，強制解鎖重啟
+      if (recognitionState === "idle" || (recognitionState === "starting" && (now - lastSpeechHeartbeat) > 2000)) {
+        recognitionState = "idle";
         startSpeechRecognitionSafe();
       }
     }, 1200);
@@ -2081,7 +2090,6 @@ async function stopRecordingAndFinalize() {
   document.getElementById("btn-stop-record").classList.add("btn-disabled");
   updatePauseButtonUi(false);
 
-  // 精確記錄最終錄音總時長 (秒數)，徹底解決 WebM 無 header 導致之 Infinity:NaN 問題
   const finalDuration = recordingSeconds;
   StateStore.setState("recordingDuration", finalDuration);
 
@@ -2116,12 +2124,14 @@ function proceedToProposalsView() {
   requestProposalsFromAudio();
 }
 
+/**
+ * 音檔切片 UI 局部渲染 (Scoped DOM Update，絕不干擾整頁其他元件)
+ */
 function renderAudioChunksAndTranscripts() {
   const container = document.getElementById("audio-chunks-container");
   const badge = document.getElementById("chunk-count-badge");
   if (!container) return;
 
-  container.innerHTML = "";
   const chunks = StateStore.getState("audioChunksList") || [];
   if (badge) badge.textContent = chunks.length + " 段切片";
 
@@ -2129,6 +2139,9 @@ function renderAudioChunksAndTranscripts() {
     container.innerHTML = '<span style="color: var(--text-muted); font-size: 13px;">暫無切片檔案</span>';
     return;
   }
+
+  // 使用 DocumentFragment 進行單次批量插入，避免頁面重繪打斷音訊串流
+  const fragment = document.createDocumentFragment();
 
   chunks.forEach(function (chunk, idx) {
     const item = document.createElement("div");
@@ -2146,9 +2159,16 @@ function renderAudioChunksAndTranscripts() {
         '檔案大小：' + (chunk.size ? (chunk.size / 1024).toFixed(1) + ' KB' : '就緒') + ' ｜ 已寫入試算表 Col 5' +
       '</div>';
 
-    container.appendChild(item);
+    fragment.appendChild(item);
   });
-  if (window.lucide) lucide.createIcons();
+
+  container.innerHTML = "";
+  container.appendChild(fragment);
+
+  // 僅限切片列表容器替換圖示，防止全域掃描干擾麥克風辨識
+  if (window.lucide) {
+    lucide.createIcons({ root: container });
+  }
 }
 
 /**
@@ -2260,7 +2280,7 @@ async function selectProposal(index) {
 }
 
 /**
- * 步驟 3：撰寫正式長文 (自動校準標題結尾、摒棄框架化子標題)
+ * 步驟 3：撰寫正式長文 (自動校準標題結尾、摒棄模板子標題)
  */
 async function generateFullArticleAction() {
   const selected = StateStore.getState("selectedProposal");
