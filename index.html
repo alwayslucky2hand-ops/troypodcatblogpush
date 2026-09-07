@@ -2008,7 +2008,7 @@
       estimatedMs: 25000,
       steps: [
         { at: 10, text: "正在解構口播音訊逐字稿核心觀點..." },
-        { at: 35, text: "正在調用 Gemini 3 Flash 多金鑰輪替..." },
+        { at: 35, text: "正在調用 Gemini 多金鑰輪替..." },
         { at: 65, text: "正在套用陳修平 7x11 爆款矩陣框架..." },
         { at: 85, text: "正在梳理 20 組策略提案與商業切入點..." }
       ]
@@ -2259,6 +2259,9 @@
     ViewSwitcher.navigate("publish");
   }
 
+  /**
+   * 關鍵升級 1：發布時確保傳遞完整 audio_stream_url，杜絕重新編輯發布時語音網址丟失
+   */
   async function publishToGitHubAction() {
     let title = (document.getElementById("post-title-input").value || "").trim();
     const contentHtml = (document.getElementById("post-content-html-input").value || "").trim();
@@ -2287,6 +2290,13 @@
           audioPayload = [{ raw_base64: masterB64, name: "full_master.webm", duration: audioDuration }].concat(audioPayload);
         }
 
+        // 提取主要音訊串流網址 (清洗換行，防爆)
+        let resolvedStreamUrl = StateStore.getState("masterAudioBlobUrl") || "";
+        if (!resolvedStreamUrl.startsWith("http") && audioFiles.length > 0) {
+          resolvedStreamUrl = audioFiles[0].stream_url || "";
+        }
+        resolvedStreamUrl = String(resolvedStreamUrl).split(/[\r\n]+/)[0].trim();
+
         ProgressController.show({
           title: "文章發布至 GitHub 獨立網頁中",
           estimatedMs: 12000,
@@ -2308,6 +2318,7 @@
               content_html: contentHtml,
               audio_files: audioPayload,
               audio_duration: audioDuration,
+              audio_stream_url: resolvedStreamUrl, // 補齊此關鍵欄位！
               transcripts: StateStore.getState("liveTranscriptText") || "",
               diagnostic_score: score
             }
@@ -2440,6 +2451,9 @@
     }
   }
 
+  /**
+   * 關鍵升級 2：在文章管理庫存中加入愛心、留言指標呈現
+   */
   function renderAdminArticles(list) {
     const container = document.getElementById("admin-articles-container");
     if (!container) return;
@@ -2497,15 +2511,25 @@
     }));
   }
 
+  /**
+   * 關鍵升級 3：載入文章時清洗音訊 URL，避免含有換行符號導致播放器無法播放
+   */
   function loadArticleForEdit(postId) {
     const post = adminArticlesCache.find(function (p) { return String(p.id) === String(postId); });
     if (!post) { ToastController.show("找不到指定文章", "error"); return; }
+
+    let safeAudioUrl = "";
+    if (post.audio_stream_url) {
+      safeAudioUrl = String(post.audio_stream_url).split(/[\r\n]+/)[0].trim();
+    } else if (post.audio_files && post.audio_files.length > 0) {
+      safeAudioUrl = post.audio_files[0].stream_url || "";
+    }
 
     StateStore.setState("sessionId", post.id);
     StateStore.setState("_rowId", post._rowId);
     StateStore.setState("audioChunksList", post.audio_files || []);
     StateStore.setState("liveTranscriptText", post.transcripts || "");
-    StateStore.setState("masterAudioBlobUrl", post.audio_stream_url || "");
+    StateStore.setState("masterAudioBlobUrl", safeAudioUrl);
 
     const postObj = {
       id: post.id,
@@ -2592,7 +2616,10 @@
     },
 
     loadSource: function () {
-      const masterUrl = StateStore.getState("masterAudioBlobUrl");
+      let masterUrl = StateStore.getState("masterAudioBlobUrl");
+      if (masterUrl) {
+        masterUrl = String(masterUrl).split(/[\r\n]+/)[0].trim();
+      }
       let targetUrl = masterUrl;
       if (!targetUrl) {
         const chunks = StateStore.getState("audioChunksList") || [];
